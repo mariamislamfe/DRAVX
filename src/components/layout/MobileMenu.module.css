@@ -1,0 +1,42 @@
+.menu {
+  position: fixed;
+  inset: 0;
+  z-index: 790;
+  visibility: hidden;
+  background: var(--ink);
+  color: var(--paper);
+  padding: calc(var(--header-h) + 24px) var(--gutter) var(--gutter);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow-y: auto;
+}
+.list {
+  display: grid;
+  gap: 2px;
+}
+.link {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: clamp(3rem, 15vw, 6rem);
+  line-height: 0.92;
+}
+.idx {
+  font-size: 0.7rem;
+  margin-top: 0.8em;
+  color: var(--blue-hi);
+}
+.foot {
+  display: grid;
+  gap: 8px;
+}
+.renders {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.renders > * {
+  width: 30% !important;
+  max-width: 120px;
+}

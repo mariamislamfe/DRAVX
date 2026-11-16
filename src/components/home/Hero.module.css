@@ -1,0 +1,201 @@
+.hero {
+  position: relative;
+  height: 100svh;
+  min-height: 600px;
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--paper);
+}
+.stage {
+  --split: 50%;
+  --fw: min(64svh, 44vw);
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+.world {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.night {
+  background: radial-gradient(60% 65% at 60% 55%, #16204a 0%, #0b0d18 50%, var(--ink) 100%);
+}
+.day {
+  background: radial-gradient(70% 70% at 40% 55%, #f4f1ea 0%, var(--paper) 60%);
+  clip-path: inset(0 calc(100% - var(--split)) 0 0);
+}
+.beam {
+  position: absolute;
+  top: -30%;
+  left: 55%;
+  width: 30%;
+  height: 160%;
+  transform: rotate(14deg);
+  background: linear-gradient(90deg, transparent, rgba(45, 107, 255, 0.22), transparent);
+  filter: blur(30px);
+}
+
+.figures {
+  position: absolute;
+  width: var(--fw);
+  left: calc(50% - var(--fw) / 2);
+  top: calc(56% - var(--fw) * 0.575);
+  will-change: transform;
+}
+.figures img {
+  filter: drop-shadow(0 40px 50px rgba(0, 0, 0, 0.35));
+  user-select: none;
+}
+
+.divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--split);
+  width: 0;
+  pointer-events: none;
+}
+.divider::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -0.5px;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--blue) 20%, var(--blue) 80%, transparent);
+}
+.handle {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  translate: -50% -50%;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: var(--paper);
+  font-size: 1rem;
+}
+
+.title {
+  position: absolute;
+  top: calc(var(--header-h) + 2vh);
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: clamp(2.4rem, 4.2vw, 4.8rem);
+  line-height: 0.88;
+  color: var(--paper);
+  mix-blend-mode: difference;
+  pointer-events: none;
+}
+.title :global(.mask) {
+  display: inline-block;
+  margin: 0 0.12em;
+}
+.title :global(.mask) > span {
+  display: block;
+}
+@media (max-width: 900px) {
+  .title :global(.mask) {
+    display: block;
+    margin: 0;
+  }
+}
+
+.tags {
+  position: absolute;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: var(--gutter);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+.tag {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 12px 14px 12px 18px;
+  min-height: 60px;
+  transition: transform 0.5s var(--ease-out), box-shadow 0.5s var(--ease-out);
+}
+.tag:hover {
+  transform: translateY(-4px);
+}
+.tag[data-world="daydream"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+.tag[data-world="nightshift"] {
+  background: var(--paper);
+  color: var(--ink);
+}
+.tagInfo {
+  display: grid;
+  gap: 2px;
+}
+.tagName {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+.tagInfo .mono {
+  font-size: 0.72rem;
+  opacity: 0.7;
+}
+.tagCta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 0.7rem;
+  background: var(--blue);
+  color: var(--paper);
+  transition: transform 0.4s var(--ease-out);
+}
+.tag[data-world="daydream"] .tagCta {
+  background: var(--crayon-orange);
+  color: var(--ink);
+}
+.tag:hover .tagCta {
+  transform: translateX(3px);
+}
+
+.tagName,
+.tagCta {
+  white-space: nowrap;
+}
+@media (max-width: 900px) {
+  .stage {
+    --fw: min(58svh, 94vw);
+  }
+  .figures {
+    top: calc(50% - var(--fw) * 0.575);
+  }
+  .tags {
+    gap: 8px;
+  }
+  .tag {
+    flex: 1;
+    min-width: 0;
+    gap: 8px;
+    justify-content: space-between;
+    padding: 10px 8px 10px 12px;
+  }
+  .tagName {
+    font-size: 1.15rem;
+  }
+  .tagCta {
+    padding: 0 12px;
+    font-size: 0.9rem;
+  }
+  .ctaWord {
+    display: none;
+  }
+}

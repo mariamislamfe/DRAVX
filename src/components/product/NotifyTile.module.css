@@ -1,0 +1,63 @@
+.tile {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: clamp(18px, 2vw, 30px);
+  background: var(--ink);
+  color: var(--paper);
+  overflow: hidden;
+}
+.tile h3 {
+  font-size: var(--step-3);
+  max-width: 10ch;
+}
+.tile h3 em {
+  color: var(--blue-hi);
+}
+.lock {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.lock span {
+  font-size: clamp(10rem, 26vw, 26rem);
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(127, 178, 255, 0.25);
+  line-height: 0.8;
+  animation: breathe 5s ease-in-out infinite;
+}
+@keyframes breathe {
+  50% {
+    -webkit-text-stroke-color: rgba(127, 178, 255, 0.55);
+    transform: scale(1.03);
+  }
+}
+.form {
+  display: grid;
+  gap: 10px;
+}
+.form input {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(235, 231, 222, 0.5);
+  padding: 12px 0;
+}
+.form input:focus {
+  outline: none;
+  border-color: var(--blue-hi);
+}
+.form input::placeholder {
+  color: rgba(235, 231, 222, 0.5);
+}
+
+@media (max-width: 1100px) {
+  .tile {
+    aspect-ratio: auto;
+    min-height: 420px;
+  }
+}

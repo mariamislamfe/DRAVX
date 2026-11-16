@@ -1,0 +1,88 @@
+.footer {
+  position: relative;
+  padding-top: clamp(64px, 10vw, 140px);
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+}
+.top {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: clamp(40px, 6vw, 120px);
+}
+.signup h2 {
+  font-size: var(--step-3);
+  max-width: 14ch;
+}
+.signup .serif {
+  color: var(--blue-hi);
+}
+.form {
+  margin-top: 28px;
+  display: flex;
+  max-width: 520px;
+  border-bottom: 1px solid var(--paper);
+}
+.form input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  padding: 14px 0;
+  font-size: var(--step-1);
+}
+.form input::placeholder {
+  color: var(--muted);
+}
+.form input:focus {
+  outline: none;
+}
+.form button {
+  min-height: 48px;
+}
+.done {
+  margin-top: 28px;
+  color: var(--blue-hi);
+}
+.cols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.cols div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.cols .mono {
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.markWrap {
+  padding: clamp(50px, 7vw, 110px) var(--gutter) clamp(24px, 3vw, 44px);
+  overflow: hidden;
+}
+.mark {
+  display: block;
+}
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  padding-block: 18px 22px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+@media (max-width: 900px) {
+  .top {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 520px) {
+  .cols {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -1,0 +1,37 @@
+.marquee {
+  position: relative;
+  overflow: hidden;
+  padding: 16px 0 12px;
+  background: var(--blue);
+  color: var(--paper);
+}
+.marquee[data-tone="paper"] {
+  background: var(--paper);
+  color: var(--ink);
+}
+.marquee[data-tone="orange"] {
+  background: var(--crayon-orange);
+  color: var(--ink);
+}
+.track {
+  display: flex;
+  width: max-content;
+  font-size: clamp(2.2rem, 5.5vw, 5rem);
+  line-height: 1;
+  will-change: transform;
+}
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding-right: 0.35em;
+  white-space: nowrap;
+}
+.star {
+  font-size: 0.6em;
+  display: inline-block;
+  animation: spin 6s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

@@ -1,0 +1,63 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  pointer-events: none;
+  visibility: hidden;
+  --p1: var(--ink-2);
+  --p2: var(--ink);
+  --p3: var(--ink-2);
+  --p4: var(--ink);
+  --lab: var(--paper);
+}
+.overlay[data-tone="paper"] {
+  --p1: var(--paper-2);
+  --p2: var(--paper);
+  --p3: var(--paper-2);
+  --p4: var(--paper);
+  --lab: var(--ink);
+}
+.overlay[data-tone="concrete"] {
+  --p1: var(--concrete);
+  --p2: var(--paper);
+  --p3: var(--concrete);
+  --p4: var(--crayon-orange);
+  --lab: var(--ink);
+}
+.overlay[data-tone="blue"] {
+  --p1: var(--ink);
+  --p2: var(--blue);
+  --p3: var(--ink);
+  --p4: var(--ink-2);
+  --lab: var(--paper);
+}
+.panels {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.panel {
+  transform: scaleY(0);
+  margin-right: -1px;
+}
+.panel:nth-child(1) { background: var(--p1); }
+.panel:nth-child(2) { background: var(--p2); }
+.panel:nth-child(3) { background: var(--p3); }
+.panel:nth-child(4) { background: var(--p4); }
+
+.labelWrap {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.label {
+  display: block;
+  padding: 0 var(--gutter);
+  font-size: var(--step-4);
+  color: var(--lab);
+  text-align: center;
+  transform: translateY(120%);
+}

@@ -1,0 +1,51 @@
+/* Sized so the heading + both cards (image, name, quick-add) fit one screen */
+.section {
+  --card-w: min(calc((100svh - 330px) * 0.8), calc((100vw - 2 * var(--gutter) - 40px) / 2));
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  padding: calc(var(--header-h) + 8px) 0 28px;
+}
+.section > :global(.wrap) {
+  width: 100%;
+  max-width: calc(var(--card-w) * 2 + 40px + 2 * var(--gutter));
+}
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.head h2 {
+  font-size: clamp(2.2rem, 4vw, 3.6rem);
+}
+.head em {
+  color: var(--blue);
+}
+.head a {
+  font-size: 0.74rem;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, var(--card-w));
+  justify-content: space-between;
+  gap: 40px;
+}
+
+@media (max-width: 700px) {
+  .section {
+    min-height: 0;
+    padding: 60px 0;
+  }
+  .section > :global(.wrap) {
+    max-width: none;
+  }
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+}

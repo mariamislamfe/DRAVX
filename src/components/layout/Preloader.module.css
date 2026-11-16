@@ -1,0 +1,62 @@
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 980;
+}
+.top,
+.bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50.5%;
+  background: var(--ink);
+}
+.top {
+  top: 0;
+}
+.bottom {
+  bottom: 0;
+}
+.content {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--paper);
+}
+.brand {
+  display: grid;
+  justify-items: center;
+  gap: clamp(18px, 3vw, 34px);
+}
+.mark {
+  height: clamp(120px, 22vw, 260px);
+  visibility: hidden;
+}
+.word2 {
+  height: clamp(32px, 5vw, 64px);
+  clip-path: inset(0 100% 0 0);
+}
+.words {
+  position: absolute;
+  left: var(--gutter);
+  bottom: var(--gutter);
+  height: 1.4em;
+  overflow: hidden;
+  color: var(--blue-hi);
+}
+.word {
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  transform: translateY(100%);
+}
+.count {
+  position: absolute;
+  right: var(--gutter);
+  bottom: calc(var(--gutter) - 0.1em);
+  font-size: var(--step-3);
+  font-variant-numeric: tabular-nums;
+}

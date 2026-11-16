@@ -1,0 +1,144 @@
+.page {
+  min-height: 100svh;
+  padding: calc(var(--header-h) + clamp(30px, 6vw, 80px)) 0 clamp(80px, 10vw, 160px);
+}
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: clamp(30px, 5vw, 70px);
+}
+.title {
+  font-size: clamp(4.4rem, 16vw, 18rem);
+  line-height: 0.8;
+  overflow: hidden;
+  padding-bottom: 0.03em;
+}
+.count {
+  font-size: var(--step-3);
+  color: var(--blue);
+}
+.layout {
+  display: grid;
+  grid-template-columns: 1fr minmax(300px, 400px);
+  gap: clamp(24px, 5vw, 90px);
+  align-items: start;
+}
+.lines {
+  border-top: 1px solid var(--line);
+}
+.summary {
+  position: sticky;
+  top: calc(var(--header-h) + 16px);
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+  background: var(--ink);
+  color: var(--paper);
+  --line: rgba(235, 231, 222, 0.16);
+  --muted: rgba(235, 231, 222, 0.6);
+  --bg: var(--ink);
+  --fg: var(--paper);
+}
+.summary h2 {
+  font-weight: 400;
+  color: var(--blue-hi);
+}
+.summary :global(.btn--ink) {
+  --b-bg: var(--paper);
+  --b-fg: var(--ink);
+}
+.rows {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.rows div {
+  display: flex;
+  justify-content: space-between;
+}
+.rows dt {
+  color: var(--muted);
+}
+.rows dd {
+  margin: 0;
+}
+.total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.total .display {
+  font-size: var(--step-3);
+}
+.keep {
+  justify-self: center;
+  font-size: 0.7rem;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.empty {
+  display: grid;
+  gap: 18px;
+  justify-items: start;
+  padding: 40px 0 80px;
+}
+.emptyTitle {
+  font-size: var(--step-4);
+}
+.emptyTitle em {
+  color: var(--crayon-orange);
+}
+.emptyCtas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.loading {
+  display: grid;
+  gap: 16px;
+}
+.loading span {
+  height: 160px;
+  background: linear-gradient(90deg, var(--paper-2), #f3f0e9, var(--paper-2));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.suggest {
+  margin-top: clamp(80px, 10vw, 160px);
+}
+.suggest h2 {
+  font-size: var(--step-4);
+  margin-bottom: 40px;
+}
+.suggest em {
+  color: var(--blue);
+}
+.suggestGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .summary {
+    position: static;
+  }
+  .suggestGrid {
+    grid-template-columns: 1fr;
+  }
+}
