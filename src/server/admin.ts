@@ -5,7 +5,18 @@ import { redirect } from "next/navigation";
 import { mutate } from "./db";
 import { checkPassword, endSession, requireAdmin, startSession } from "./auth";
 import { SIZES, WORLD_IDS, type ImageKind, type Product, type Size } from "@/data/products";
-import { ORDER_STATUSES, slugify, type Category, type CustomTemplate, type OrderStatus, type Settings, type Side } from "@/data/schema";
+import {
+  DEFAULT_BRAND,
+  ORDER_STATUSES,
+  slugify,
+  type BrandInfo,
+  type Category,
+  type CustomTemplate,
+  type OrderStatus,
+  type Settings,
+  type Side,
+  type SizeChart,
+} from "@/data/schema";
 
 export type ActionResult = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -55,6 +66,7 @@ export async function saveCategory(input: Partial<Category> & { originalId?: str
       description: str(input.description, 300) || undefined,
       order: Math.round(num(input.order, 0, 999)),
       active: input.active !== false,
+      sizeChart: cleanChart(input.sizeChart),
     };
     if (existing) {
       if (existing.id !== id) {
@@ -67,6 +79,23 @@ export async function saveCategory(input: Partial<Category> & { originalId?: str
   });
   refresh();
   return res;
+}
+
+/** Keep a size chart rectangular and bounded; empty chart → no size guide. */
+function cleanChart(c: unknown): SizeChart | undefined {
+  if (!c || typeof c !== "object") return undefined;
+  const v = c as Partial<SizeChart>;
+  const sizes = (Array.isArray(v.sizes) ? v.sizes : []).map((s) => str(s, 12)).filter(Boolean).slice(0, 12);
+  if (!sizes.length) return undefined;
+  const rows = (Array.isArray(v.rows) ? v.rows : [])
+    .map((r) => ({
+      label: str(r?.label, 40),
+      values: sizes.map((_, i) => str(Array.isArray(r?.values) ? r.values[i] : "", 16)),
+    }))
+    .filter((r) => r.label)
+    .slice(0, 12);
+  if (!rows.length) return undefined;
+  return { intro: str(v.intro, 400), sizes, rows };
 }
 
 export async function deleteCategory(id: string): Promise<ActionResult> {
@@ -281,16 +310,66 @@ export async function deleteOrder(id: string) {
 /* Settings                                                            */
 /* ------------------------------------------------------------------ */
 
-export async function saveSettings(_: unknown, form: FormData): Promise<{ saved?: boolean }> {
+export async function saveSettings(_: unknown, form: FormData): Promise<{ saved?: boolean; error?: string }> {
   await requireAdmin();
+  const b = (k: keyof BrandInfo, max = 200) => str(form.get(`brand.${k}`), max);
+  const currency = b("currency", 3).toUpperCase();
+  if (!/^[A-Z]{3}$/.test(currency)) return { error: "Currency must be a 3-letter code, e.g. EGP or USD." };
+  try {
+    new Intl.NumberFormat("en-US", { style: "currency", currency });
+  } catch {
+    return { error: `“${currency}” isn't a currency code.` };
+  }
+  const siteUrl = b("siteUrl").replace(/\/+$/, "");
+  if (siteUrl && !/^https?:\/\/[^\s/]+\.[^\s]+$/i.test(siteUrl)) return { error: "Website address must start with https://" };
+  const email = b("email", 120);
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "That email address doesn't look right." };
+
+  const brand: BrandInfo = {
+    name: b("name", 60) || DEFAULT_BRAND.name,
+    tagline: b("tagline", 120),
+    description: b("description", 400),
+    siteUrl: siteUrl || DEFAULT_BRAND.siteUrl,
+    currency,
+    email,
+    phone: b("phone", 40),
+    whatsapp: b("whatsapp", 40),
+    instagram: b("instagram"),
+    tiktok: b("tiktok"),
+    facebook: b("facebook"),
+    shippingInfo: b("shippingInfo", 1500),
+    returnsInfo: b("returnsInfo", 1500),
+  };
   const s: Settings = {
     shippingFee: num(form.get("shippingFee"), 0, 1e5),
     freeShippingThreshold: num(form.get("freeShippingThreshold"), 0, 1e7),
     customizerEnabled: form.get("customizerEnabled") === "on",
+    brand,
   };
   await mutate((db) => {
     db.settings = s;
   });
   refresh();
   return { saved: true };
+}
+
+/* ------------------------------------------------------------------ */
+/* Notifications                                                       */
+/* ------------------------------------------------------------------ */
+
+/** Mark some (or, with no ids, all) notifications as read. */
+export async function markNoticesRead(ids?: string[]) {
+  await requireAdmin();
+  await mutate((db) => {
+    for (const n of db.notifications) if (!ids || ids.includes(n.id)) n.read = true;
+  });
+  revalidatePath("/admin", "layout");
+}
+
+export async function clearNotices() {
+  await requireAdmin();
+  await mutate((db) => {
+    db.notifications = db.notifications.filter((n) => !n.read);
+  });
+  revalidatePath("/admin", "layout");
 }

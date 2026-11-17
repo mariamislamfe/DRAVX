@@ -2,7 +2,8 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
-import { BRAND } from "@/config/brand";
+import { socialUrl, whatsappUrl } from "@/config/brand";
+import { useCatalog } from "@/lib/catalog";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import { Logo } from "@/components/brand/Logo";
 import styles from "./Footer.module.css";
@@ -10,6 +11,21 @@ import styles from "./Footer.module.css";
 export function Footer() {
   const root = useRef<HTMLElement>(null);
   const [state, setState] = useState<"idle" | "done">("idle");
+  const brand = useCatalog().settings.brand;
+  const contact = [
+    brand.email && { label: "Email", href: `mailto:${brand.email}` },
+    brand.phone && { label: brand.phone, href: `tel:${brand.phone.replace(/[^\d+]/g, "")}` },
+    whatsappUrl(brand.whatsapp) && { label: "WhatsApp", href: whatsappUrl(brand.whatsapp), external: true },
+  ].filter(Boolean) as { label: string; href: string; external?: boolean }[];
+  const social = (
+    [
+      ["Instagram", socialUrl("instagram", brand.instagram)],
+      ["TikTok", socialUrl("tiktok", brand.tiktok)],
+      ["Facebook", socialUrl("facebook", brand.facebook)],
+    ] as const
+  )
+    .filter(([, href]) => href)
+    .map(([label, href]) => ({ label, href }));
 
   useGSAP(
     () => {
@@ -69,13 +85,28 @@ export function Footer() {
             <p className="mono">Brand</p>
             <TransitionLink href="/about" className="link-u">Manifesto</TransitionLink>
             <TransitionLink href="/cart" className="link-u">Your bag</TransitionLink>
-            <a href={`mailto:${BRAND.email}`} className="link-u">Contact</a>
+            <TransitionLink href="/customize" className="link-u">Customize</TransitionLink>
           </div>
-          <div>
-            <p className="mono">Follow</p>
-            <a href="#" className="link-u">Instagram</a>
-            <a href="#" className="link-u">TikTok</a>
-          </div>
+          {contact.length > 0 && (
+            <div>
+              <p className="mono">Contact</p>
+              {contact.map((c) => (
+                <a key={c.label} href={c.href} className="link-u" {...(c.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
+                  {c.label}
+                </a>
+              ))}
+            </div>
+          )}
+          {social.length > 0 && (
+            <div>
+              <p className="mono">Follow</p>
+              {social.map((c) => (
+                <a key={c.label} href={c.href} className="link-u" target="_blank" rel="noopener noreferrer">
+                  {c.label}
+                </a>
+              ))}
+            </div>
+          )}
         </nav>
       </div>
 
@@ -84,9 +115,11 @@ export function Footer() {
       </div>
 
       <div className={`${styles.bottom} wrap mono`}>
-        <span>© 2026 {BRAND.name}</span>
-        <span>Front: quiet. Back: loud.</span>
-        <span>Payments not yet connected</span>
+        <span>
+          © {new Date().getFullYear()} {brand.name}
+        </span>
+        <span>{brand.tagline || "Front: quiet. Back: loud."}</span>
+        <span>Cash on delivery</span>
       </div>
     </footer>
   );

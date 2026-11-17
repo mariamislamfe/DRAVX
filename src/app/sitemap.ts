@@ -5,8 +5,8 @@ import { getCatalog } from "@/server/db";
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = BRAND.url;
-  const { products, templates } = await getCatalog();
+  const { products, templates, settings } = await getCatalog();
+  const base = settings.brand.siteUrl || BRAND.url;
   return [
     { url: `${base}/`, priority: 1 },
     { url: `${base}/shop`, priority: 0.9 },

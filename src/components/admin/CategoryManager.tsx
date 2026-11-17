@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { deleteCategory, saveCategory } from "@/server/admin";
 import type { Category } from "@/data/schema";
+import { SizeChartEditor } from "./SizeChartEditor";
 import styles from "./Admin.module.css";
 
 type Row = Category & { products: number; templates: number };
@@ -41,7 +42,7 @@ export function CategoryManager({ rows }: { rows: Row[] }) {
   const set = (p: Partial<Category>) => setEditing((s) => (s ? { ...s, data: { ...s.data, ...p } } : s));
 
   return (
-    <div className={styles.split}>
+    <div className={`${styles.split} ${editing ? styles.splitWide : ""}`}>
       <div className={styles.tableWrap}>
         {rows.length === 0 ? (
           <p className={styles.empty}>No categories yet.</p>
@@ -67,6 +68,7 @@ export function CategoryManager({ rows }: { rows: Row[] }) {
                   </td>
                   <td className={styles.muted}>
                     <code>{c.id}</code>
+                    {c.sizeChart && <div>size guide ✓</div>}
                   </td>
                   <td>
                     <Link href={`/admin/products?cat=${c.id}`} className={styles.rowLink}>
@@ -121,6 +123,10 @@ export function CategoryManager({ rows }: { rows: Row[] }) {
               <input type="checkbox" checked={editing.data.active} onChange={(e) => set({ active: e.target.checked })} />
               Visible in the store
             </label>
+            <fieldset className={styles.fieldset}>
+              <legend>Size guide</legend>
+              <SizeChartEditor value={editing.data.sizeChart} onChange={(sizeChart) => set({ sizeChart })} />
+            </fieldset>
             {error && <p className={styles.error}>{error}</p>}
             <div className={styles.actions}>
               <button type="submit" className={styles.btn} disabled={pending}>

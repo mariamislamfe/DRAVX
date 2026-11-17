@@ -15,7 +15,8 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { SEED_PRODUCTS } from "@/data/products";
-import type { Catalog, CustomTemplate, DB } from "@/data/schema";
+import { DEFAULT_BRAND, DEFAULT_SIZE_CHART, type Catalog, type CustomTemplate, type DB } from "@/data/schema";
+import { setCurrency } from "@/config/brand";
 import { neonCreate, neonRead, neonWrite, neonEnabled } from "./neon";
 
 export const DATA_DIR = path.resolve(/*turbopackIgnore: true*/ process.env.DATA_DIR ?? path.join(process.cwd(), "data"));
@@ -26,13 +27,21 @@ function seed(): DB {
   return {
     version: 1,
     seq: 1000,
-    settings: { shippingFee: 10, freeShippingThreshold: 150, customizerEnabled: true },
+    settings: { shippingFee: 10, freeShippingThreshold: 150, customizerEnabled: true, brand: { ...DEFAULT_BRAND } },
     categories: [
-      { id: "hoodies", name: "Hoodies", description: "Oversized. Quiet front, loud back.", order: 1, active: true },
+      {
+        id: "hoodies",
+        name: "Hoodies",
+        description: "Oversized. Quiet front, loud back.",
+        order: 1,
+        active: true,
+        sizeChart: structuredClone(DEFAULT_SIZE_CHART),
+      },
     ],
     products: SEED_PRODUCTS,
     templates: [seedTemplate()],
     orders: [],
+    notifications: [],
   };
 }
 
@@ -93,6 +102,23 @@ const SEED_COLORS = [
 /** Bring stores created by older versions up to date. Returns true if changed. */
 function upgrade(db: DB): boolean {
   let changed = false;
+  if (!db.notifications) {
+    db.notifications = [];
+    changed = true;
+  }
+  if (!db.settings.brand) {
+    db.settings.brand = { ...DEFAULT_BRAND };
+    changed = true;
+  } else if (Object.keys(DEFAULT_BRAND).some((k) => !(k in db.settings.brand))) {
+    db.settings.brand = { ...DEFAULT_BRAND, ...db.settings.brand };
+    changed = true;
+  }
+  // hoodies shipped with a hard-coded size guide; make it editable
+  const hoodies = db.categories.find((c) => c.id === "hoodies");
+  if (hoodies && !hoodies.sizeChart) {
+    hoodies.sizeChart = structuredClone(DEFAULT_SIZE_CHART);
+    changed = true;
+  }
   for (const t of db.templates) {
     // the first customizer shipped with flat vector blanks; swap in the photos
     if (t.views.some((v) => /^\/customizer\/hoodie-(front|back)\.svg$/.test(v.mockup))) {
@@ -184,9 +210,15 @@ async function remoteMutate<T>(fn: (db: DB) => T | Promise<T>): Promise<T> {
 
 /** Read-only snapshot. Don't mutate the result; use `mutate`. */
 export async function readDB(): Promise<DB> {
-  if (neonEnabled()) return (await remoteLoad()).db;
-  await queue.catch(() => {});
-  return load();
+  let db: DB;
+  if (neonEnabled()) db = (await remoteLoad()).db;
+  else {
+    await queue.catch(() => {});
+    db = await load();
+  }
+  // prices rendered on the server use the currency chosen in Settings
+  setCurrency(db.settings.brand?.currency);
+  return db;
 }
 
 /**

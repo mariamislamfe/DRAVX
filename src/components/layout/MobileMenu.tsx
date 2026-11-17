@@ -6,7 +6,7 @@ import { useUI } from "@/lib/store";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import { Garment } from "@/components/product/Garment";
 import { useCatalog } from "@/lib/catalog";
-import { BRAND } from "@/config/brand";
+import { socialUrl } from "@/config/brand";
 import { NAV } from "./Header";
 import styles from "./MobileMenu.module.css";
 
@@ -14,7 +14,9 @@ export function MobileMenu() {
   const open = useUI((s) => s.menuOpen);
   const setOpen = useUI((s) => s.setMenuOpen);
   const ref = useRef<HTMLDivElement>(null);
-  const products = useCatalog().products.slice(0, 3);
+  const { products: all, settings } = useCatalog();
+  const products = all.slice(0, 3);
+  const brand = settings.brand;
   const tl = useRef<gsap.core.Timeline | null>(null);
 
   useEffect(() => {
@@ -64,11 +66,13 @@ export function MobileMenu() {
             <Garment key={p.slug} product={p} view="back" decorative sizes="120px" />
           ))}
         </div>
-        <p className="mono" data-fade>
-          {BRAND.instagram}
-        </p>
+        {brand.instagram && (
+          <a className="mono" data-fade href={socialUrl("instagram", brand.instagram)} target="_blank" rel="noopener noreferrer">
+            {brand.instagram.startsWith("http") ? "Instagram" : `@${brand.instagram.replace(/^@/, "")}`}
+          </a>
+        )}
         <p className="mono" data-fade style={{ opacity: 0.6 }}>
-          Front: quiet. Back: loud.
+          {brand.tagline || "Front: quiet. Back: loud."}
         </p>
       </div>
     </div>

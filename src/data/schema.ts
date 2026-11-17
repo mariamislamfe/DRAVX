@@ -10,10 +10,33 @@ export type Category = {
   description?: string;
   order: number;
   active: boolean;
+  /** Size guide shown on this category's product pages. */
+  sizeChart?: SizeChart;
+};
+
+/**
+ * Garment measurements: one row per measurement, one value per size.
+ * Values are text so ranges like "60-62" work; plain numbers in cm are
+ * converted when the shopper switches to inches.
+ */
+export type SizeChart = {
+  intro: string;
+  sizes: string[];
+  rows: { label: string; values: string[] }[];
+};
+
+export const DEFAULT_SIZE_CHART: SizeChart = {
+  intro: "Cut oversized with dropped shoulders. Take your usual size for the intended slouch, or size down for a closer fit.",
+  sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+  rows: [
+    { label: "Chest (flat)", values: ["60", "63", "66", "69", "72", "75"] },
+    { label: "Body length", values: ["68", "70", "72", "74", "76", "78"] },
+    { label: "Sleeve", values: ["84", "86", "88", "90", "92", "94"] },
+  ],
 };
 
 /* ------------------------------------------------------------------ */
-/* Customizer                                                          */
+/* Customizer                                                        */
 /* ------------------------------------------------------------------ */
 
 export type Side = "front" | "back";
@@ -155,10 +178,57 @@ export type Order = {
   history: { at: string; status: OrderStatus }[];
 };
 
+/** Everything about the brand the owner can change from Settings. */
+export type BrandInfo = {
+  name: string;
+  tagline: string;
+  description: string;
+  /** Live site address, e.g. https://dravx.com (used for SEO links). */
+  siteUrl: string;
+  /** ISO code, e.g. USD or EGP */
+  currency: string;
+  email: string;
+  phone: string;
+  whatsapp: string;
+  instagram: string;
+  tiktok: string;
+  facebook: string;
+  shippingInfo: string;
+  returnsInfo: string;
+};
+
+export const DEFAULT_BRAND: BrandInfo = {
+  name: "DRAVX",
+  tagline: "Turn your back on them.",
+  description: "DRAVX makes oversized hoodies with a quiet front and a loud back. Two worlds, one hood: DAYDREAM and NIGHTSHIFT.",
+  siteUrl: "https://dravx.example",
+  currency: "USD",
+  email: "",
+  phone: "",
+  whatsapp: "",
+  instagram: "",
+  tiktok: "",
+  facebook: "",
+  shippingInfo: "We call to confirm every order before it ships. Pay in cash when it arrives.",
+  returnsInfo: "",
+};
+
 export type Settings = {
   shippingFee: number;
   freeShippingThreshold: number;
   customizerEnabled: boolean;
+  brand: BrandInfo;
+};
+
+/** Dashboard notification (new orders and the like). */
+export type Notice = {
+  id: string;
+  at: string;
+  kind: "order" | "custom-order";
+  title: string;
+  body: string;
+  href: string;
+  read: boolean;
 };
 
 export type DB = {
@@ -169,6 +239,7 @@ export type DB = {
   products: Product[];
   templates: CustomTemplate[];
   orders: Order[];
+  notifications: Notice[];
 };
 
 /** What the storefront receives. */

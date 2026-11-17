@@ -2,21 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "@/lib/gsap";
-import { SIZES } from "@/data/products";
+import type { SizeChart } from "@/data/schema";
 import { lockScroll } from "@/components/motion/SmoothScroll";
 import styles from "./Pdp.module.css";
 
-// PLACEHOLDER measurements (cm) — replace with production spec sheet.
-const CHART = {
-  chest: [60, 63, 66, 69, 72, 75], // flat chest width
-  length: [68, 70, 72, 74, 76, 78], // body length (HPS)
-  sleeve: [84, 86, 88, 90, 92, 94], // centre back to cuff
-};
-
-export function SizeGuide({ open, onClose }: { open: boolean; onClose: () => void }) {
+/** Measurements come from Dashboard → Categories → Size guide (in cm). */
+export function SizeGuide({ chart, open, onClose }: { chart: SizeChart; open: boolean; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [unit, setUnit] = useState<"cm" | "in">("cm");
-  const fmt = (cm: number) => (unit === "cm" ? cm : Math.round((cm / 2.54) * 10) / 10);
+  // numbers (and ranges like 60-62) convert; anything else is shown as typed
+  const fmt = (v: string) =>
+    unit === "cm" ? v : v.replace(/\d+(?:\.\d+)?/g, (n) => String(Math.round((Number(n) / 2.54) * 10) / 10));
+  const numeric = chart.rows.some((r) => r.values.some((v) => /\d/.test(v)));
 
   useEffect(() => {
     const el = ref.current!;
@@ -48,46 +45,44 @@ export function SizeGuide({ open, onClose }: { open: boolean; onClose: () => voi
             Close
           </button>
         </div>
-        <p className={styles.sheetLede}>
-          Cut oversized with dropped shoulders. Take your usual size for the intended slouch, or size down for a closer fit.
-        </p>
-        <div className={styles.unit} role="group" aria-label="Units">
-          {(["cm", "in"] as const).map((u) => (
-            <button key={u} type="button" className="mono" aria-pressed={unit === u} onClick={() => setUnit(u)}>
-              {u}
-            </button>
-          ))}
-        </div>
+        {chart.intro && <p className={styles.sheetLede}>{chart.intro}</p>}
+        {numeric && (
+          <div className={styles.unit} role="group" aria-label="Units">
+            {(["cm", "in"] as const).map((u) => (
+              <button key={u} type="button" className="mono" aria-pressed={unit === u} onClick={() => setUnit(u)}>
+                {u}
+              </button>
+            ))}
+          </div>
+        )}
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <caption className="sr-only">Garment measurements in {unit}</caption>
             <thead>
               <tr>
-                <th scope="col" className="mono">Size</th>
-                {SIZES.map((s) => (
-                  <th key={s} scope="col" className="mono">{s}</th>
+                <th scope="col" className="mono">
+                  Size
+                </th>
+                {chart.sizes.map((s) => (
+                  <th key={s} scope="col" className="mono">
+                    {s}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {(
-                [
-                  ["Chest (flat)", CHART.chest],
-                  ["Body length", CHART.length],
-                  ["Sleeve", CHART.sleeve],
-                ] as const
-              ).map(([label, row]) => (
-                <tr key={label}>
-                  <th scope="row">{label}</th>
-                  {row.map((v, i) => (
-                    <td key={i}>{fmt(v)}</td>
+              {chart.rows.map((r) => (
+                <tr key={r.label}>
+                  <th scope="row">{r.label}</th>
+                  {chart.sizes.map((s, i) => (
+                    <td key={s}>{r.values[i] ? fmt(r.values[i]) : "–"}</td>
                   ))}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p className={`${styles.sheetNote} mono`}>Placeholder measurements, to be confirmed against the production spec sheet.</p>
+        <p className={`${styles.sheetNote} mono`}>Garment measured flat, in {unit}.</p>
       </div>
     </div>
   );

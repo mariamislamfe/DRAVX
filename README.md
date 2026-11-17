@@ -20,11 +20,12 @@ Open `http://localhost:3000/admin` (on the live site: `https://<your-domain>/adm
 | Section | What it does |
 | --- | --- |
 | Overview | New orders, custom orders waiting to print, revenue |
+| Notifications | Every new order creates a notification. While any dashboard page is open it checks every 20 s and, on a new order, plays a chime, shows a desktop notification (after "Turn on order alerts"), adds the unread count to the tab title and refreshes the badges |
 | Orders | Filter by status, search by name, phone or order number. Each order shows the customer, totals (cash on delivery), status changes with history and an internal note. Custom items get a **print sheet**: the mockup, the transparent print file (150 dpi, covering the whole print area), artwork size and position in cm, and the customer's original files. "Print order sheet" prints it. |
 | Products | Create, edit, hide or delete products: price, sizes, sold-out sizes, copy, design options and photos (uploaded) |
-| Categories | Add categories (e.g. Sweatpants). The shop shows a Category filter once more than one category has products |
+| Categories | Add categories (e.g. Sweatpants). The shop shows a Category filter once more than one category has products. Each category has its own editable size guide (measurements × sizes, in cm), shown on its product pages |
 | Customizer | The blank garments customers can design on: name, base price + per-side print price, sizes, print area (drag on the mockup), print width in cm, and colours. Each colour can have its own front/back photo of the blank; a colour without one gets the white mockup tinted |
-| Settings | Shipping fee, free-shipping threshold, customizer on/off |
+| Settings | Brand name, tagline, description, website address, currency, email, phone, WhatsApp, Instagram/TikTok/Facebook, shipping and returns text, shipping fee, free-shipping threshold, customizer on/off. Changing the currency changes the symbol only, so re-enter prices after switching |
 
 ## Customizer (`/customize`)
 
@@ -50,14 +51,14 @@ A new Neon database starts from the seed. Anything added locally in `data/` does
 | --- | --- |
 | Product imagery | **Extracted from the reference mockups** (front, back, 4 Third Eye back designs, detail crops, transparent cut-outs). Model/lookbook photography is still pending and labelled as such. See `public/products/README.md`. New products get their photos from the dashboard. |
 | Logo | From the supplied logo, as transparent PNGs in `public/brand/`, rendered as CSS masks via `components/brand/Logo.tsx`. Favicon generated from the mark. |
-| Brand name, currency, emails | Placeholders in `src/config/brand.ts`. Prices and shipping are set in the dashboard |
-| Size chart | Placeholder measurements in `src/components/pdp/SizeGuide.tsx` |
+| Brand name, currency, contact, socials | Set in Dashboard → Settings (defaults in `src/data/schema.ts`) |
+| Size chart | Set per category in Dashboard → Categories. The hoodie numbers are still sample values |
 | Back-print designs | Main Design, Eyes Focus, Silhouette Energy, Minimal Symbol (from the reference sheet) |
 | Customizer mockups | White and black hoodie photos in `public/customizer/`, made from the product photos with the prints removed (the black back and white back are softer, from a small source). Swap in real blank-garment photos per colour from Dashboard → Customizer |
 | Cart | Fully functional, persisted to `localStorage` |
 | Checkout | **Cash on delivery.** Orders are validated and priced on the server (`src/server/placeOrder.ts`) and appear in the dashboard. No card payments, and no order emails yet |
 | Newsletter / "notify me" | UI only, no email provider |
-| Shipping / returns copy, social links | To be confirmed |
+| Shipping / returns copy, social links | Set in Dashboard → Settings |
 
 ## Structure
 

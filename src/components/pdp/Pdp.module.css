@@ -433,6 +433,11 @@
   color: var(--muted);
   max-width: 52ch;
 }
+.policy {
+  display: grid;
+  gap: 10px;
+  white-space: pre-line;
+}
 .detailList {
   display: grid;
   gap: 6px;

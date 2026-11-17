@@ -2,10 +2,13 @@
 
 import { createContext, useContext } from "react";
 import type { Catalog } from "@/data/schema";
+import { setCurrency } from "@/config/brand";
 
 const Ctx = createContext<Catalog | null>(null);
 
 export function CatalogProvider({ value, children }: { value: Catalog; children: React.ReactNode }) {
+  // before children render, so every formatPrice below uses the store currency
+  setCurrency(value.settings.brand?.currency);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

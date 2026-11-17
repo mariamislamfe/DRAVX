@@ -6,6 +6,7 @@ import { isUploadUrl, uploadExists } from "./uploads";
 import { templatePrice, type CustomDesign, type Customer, type Order, type OrderItem } from "@/data/schema";
 import { getImage, type Size } from "@/data/products";
 import type { CartLine } from "@/lib/store";
+import { formatPrice, setCurrency } from "@/config/brand";
 
 export type PlaceOrderResult = { ok: true; number: string } | { ok: false; error: string };
 
@@ -143,6 +144,21 @@ export async function placeOrder(input: { customer: Partial<Customer>; lines: Ca
         history: [{ at: now, status: "pending" }],
       };
       db.orders.unshift(order);
+
+      // dashboard notification
+      setCurrency(db.settings.brand?.currency);
+      const custom = items.filter((i) => i.custom).length;
+      const pieces = items.reduce((s, i) => s + i.qty, 0);
+      (db.notifications ??= []).unshift({
+        id: randomUUID(),
+        at: now,
+        kind: custom ? "custom-order" : "order",
+        title: `New order ${order.number}${custom ? " · custom design" : ""}`,
+        body: `${customer.name} · ${customer.city} · ${pieces} item${pieces === 1 ? "" : "s"} · ${formatPrice(order.total)}`,
+        href: `/admin/orders/${order.id}`,
+        read: false,
+      });
+      db.notifications.length = Math.min(db.notifications.length, 300);
       return { ok: true, number: order.number };
     });
   } catch (e) {

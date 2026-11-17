@@ -24,7 +24,9 @@ export function BuyPanel({ product, variant, onVariant }: { product: Product; va
   const [guide, setGuide] = useState(false);
   const [barVisible, setBarVisible] = useState(false);
   const add = useCart((s) => s.add);
-  const freeOver = useCatalog().settings.freeShippingThreshold;
+  const { settings, categories } = useCatalog();
+  const { freeShippingThreshold: freeOver, shippingFee, brand } = settings;
+  const sizeChart = categories.find((c) => c.id === product.categoryId)?.sizeChart;
   const setCartOpen = useUI((s) => s.setCartOpen);
   const sizesRef = useRef<HTMLDivElement>(null);
   const hiRef = useRef<HTMLSpanElement>(null);
@@ -166,9 +168,11 @@ export function BuyPanel({ product, variant, onVariant }: { product: Product; va
             <legend className={`${styles.optLabel} mono`}>
               Size <span>{size ?? "—"}</span>
             </legend>
-            <button type="button" className="mono link-u" onClick={() => setGuide(true)}>
-              Size guide
-            </button>
+            {sizeChart && (
+              <button type="button" className="mono link-u" onClick={() => setGuide(true)}>
+                Size guide
+              </button>
+            )}
           </div>
           <div ref={sizesRef} className={styles.sizes} data-error={status === "error" || undefined}>
             <span ref={hiRef} className={styles.sizeHi} aria-hidden="true" />
@@ -251,11 +255,24 @@ export function BuyPanel({ product, variant, onVariant }: { product: Product; va
                 ),
               },
               { id: "fit", title: "Fit", content: <p>{product.fit}</p> },
-              {
-                id: "ship",
-                title: "Shipping & returns",
-                content: <p>Shipping rates, delivery times and the return window will be confirmed before launch.</p>,
-              },
+              ...(brand.shippingInfo || brand.returnsInfo || shippingFee
+                ? [
+                    {
+                      id: "ship",
+                      title: brand.returnsInfo ? "Shipping & returns" : "Shipping",
+                      content: (
+                        <div className={styles.policy}>
+                          <p>
+                            {shippingFee ? `Shipping ${formatPrice(shippingFee)}` : "Free shipping"}
+                            {shippingFee && freeOver ? `, free over ${formatPrice(freeOver)}` : ""}. Cash on delivery.
+                          </p>
+                          {brand.shippingInfo && <p>{brand.shippingInfo}</p>}
+                          {brand.returnsInfo && <p>{brand.returnsInfo}</p>}
+                        </div>
+                      ),
+                    },
+                  ]
+                : []),
             ]}
           />
         </div>
@@ -274,7 +291,7 @@ export function BuyPanel({ product, variant, onVariant }: { product: Product; va
         </button>
       </div>
 
-      <SizeGuide open={guide} onClose={() => setGuide(false)} />
+      {sizeChart && <SizeGuide chart={sizeChart} open={guide} onClose={() => setGuide(false)} />}
     </aside>
   );
 }
