@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { UPLOAD_DIR } from "./db";
-import { BUCKET, sb, supabaseEnabled } from "./supabase";
+import { neonEnabled, neonFileExists, neonReadFile, neonSaveFile } from "./neon";
 
 export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 
@@ -33,9 +33,8 @@ export async function saveUpload(buf: Buffer, prefix: "design" | "admin"): Promi
   if (!ext) throw new Error("Only PNG, JPG or WebP images are accepted.");
   if (buf.length > MAX_UPLOAD_BYTES) throw new Error("File is larger than 15 MB.");
   const name = `${prefix}-${randomUUID()}.${ext}`;
-  if (supabaseEnabled()) {
-    const { error } = await sb().storage.from(BUCKET).upload(name, buf, { contentType: TYPES[ext], upsert: false });
-    if (error) throw new Error(`Upload failed: ${error.message}`);
+  if (neonEnabled()) {
+    await neonSaveFile(name, TYPES[ext], buf);
     return `/uploads/${name}`;
   }
   await fs.mkdir(UPLOAD_DIR, { recursive: true });
@@ -47,10 +46,9 @@ export async function readUpload(name: string) {
   if (!NAME_RE.test(name)) return null;
   const ext = name.split(".").pop() as UploadExt;
   try {
-    if (supabaseEnabled()) {
-      const { data, error } = await sb().storage.from(BUCKET).download(name);
-      if (error || !data) return null;
-      return { buf: Buffer.from(await data.arrayBuffer()), type: TYPES[ext] };
+    if (neonEnabled()) {
+      const buf = await neonReadFile(name);
+      return buf ? { buf, type: TYPES[ext] } : null;
     }
     const buf = await fs.readFile(path.join(UPLOAD_DIR, name));
     return { buf, type: TYPES[ext] };
@@ -61,11 +59,7 @@ export async function readUpload(name: string) {
 
 export async function uploadExists(url: string) {
   if (!isUploadUrl(url)) return false;
-  if (supabaseEnabled()) {
-    const name = url.slice("/uploads/".length);
-    const { data, error } = await sb().storage.from(BUCKET).list("", { search: name, limit: 1 });
-    return !error && !!data?.some((f) => f.name === name);
-  }
+  if (neonEnabled()) return neonFileExists(url.slice("/uploads/".length));
   try {
     await fs.access(path.join(UPLOAD_DIR, url.slice("/uploads/".length)));
     return true;

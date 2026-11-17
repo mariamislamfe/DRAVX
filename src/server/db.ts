@@ -1,9 +1,9 @@
 /**
  * DATA STORE. Two backends, same data shape:
  *
- *  - Supabase (when SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are set): the
- *    store is one jsonb row, uploads go to Storage. Use this on Vercel or any
- *    serverless host. See src/server/supabase.ts and supabase/schema.sql.
+ *  - Neon Postgres (when DATABASE_URL is set): the store is one jsonb row,
+ *    uploads are rows in an `uploads` table. Use this on Vercel or any
+ *    serverless host. See src/server/neon.ts.
  *  - Local files otherwise:
  *      <DATA_DIR>/store.json   catalog, categories, customizer templates, orders, settings
  *      <DATA_DIR>/uploads/     product photos and customer designs
@@ -16,7 +16,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { SEED_PRODUCTS } from "@/data/products";
 import type { Catalog, CustomTemplate, DB } from "@/data/schema";
-import { sbCreate, sbRead, sbWrite, supabaseEnabled } from "./supabase";
+import { neonCreate, neonRead, neonWrite, neonEnabled } from "./neon";
 
 export const DATA_DIR = path.resolve(/*turbopackIgnore: true*/ process.env.DATA_DIR ?? path.join(process.cwd(), "data"));
 export const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
@@ -149,31 +149,31 @@ async function persist(db: DB) {
   cache = { db, mtime: stat.mtimeMs };
 }
 
-/* --- Supabase: one jsonb row, optimistic locking ------------------------ */
+/* --- Neon: one jsonb row, optimistic locking ------------------------ */
 
 async function remoteLoad(): Promise<{ db: DB }> {
   for (let i = 0; i < 5; i++) {
-    const row = await sbRead<DB>();
+    const row = await neonRead<DB>();
     if (row) {
-      if (upgrade(row.data) && !(await sbWrite(row.data, row.version))) continue;
+      if (upgrade(row.data) && !(await neonWrite(row.data, row.version))) continue;
       return { db: row.data };
     }
     // first run on an empty project: seed it
-    await sbCreate(seed());
+    await neonCreate(seed());
   }
-  throw new Error("Couldn't load the store from Supabase.");
+  throw new Error("Couldn't load the store from the database.");
 }
 
 async function remoteMutate<T>(fn: (db: DB) => T | Promise<T>): Promise<T> {
   for (let i = 0; i < 8; i++) {
-    const row = await sbRead<DB>();
+    const row = await neonRead<DB>();
     if (!row) {
       await remoteLoad();
       continue;
     }
     upgrade(row.data);
     const out = await fn(row.data);
-    if (await sbWrite(row.data, row.version)) return out;
+    if (await neonWrite(row.data, row.version)) return out;
     // someone else wrote in between (another serverless instance): redo on fresh data
     await new Promise((r) => setTimeout(r, 30 * (i + 1) + Math.random() * 40));
   }
@@ -184,19 +184,19 @@ async function remoteMutate<T>(fn: (db: DB) => T | Promise<T>): Promise<T> {
 
 /** Read-only snapshot. Don't mutate the result; use `mutate`. */
 export async function readDB(): Promise<DB> {
-  if (supabaseEnabled()) return (await remoteLoad()).db;
+  if (neonEnabled()) return (await remoteLoad()).db;
   await queue.catch(() => {});
   return load();
 }
 
 /**
  * Serialised read-modify-write. The callback may mutate `db` in place.
- * With Supabase it can run more than once (on a write conflict), so keep it
+ * With Neon it can run more than once (on a write conflict), so keep it
  * free of side effects other than changing `db`.
  */
 export function mutate<T>(fn: (db: DB) => T | Promise<T>): Promise<T> {
   const run = queue.then(async () => {
-    if (supabaseEnabled()) return remoteMutate(fn);
+    if (neonEnabled()) return remoteMutate(fn);
     const db = structuredClone(await load());
     const out = await fn(db);
     await persist(db);

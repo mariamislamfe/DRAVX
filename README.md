@@ -34,16 +34,15 @@ Customers upload images (PNG/JPG/WebP) and/or add text, then drag, resize and ro
 
 Everything the dashboard edits (catalog, categories, customizer bases, orders, settings, uploaded photos and customer designs) is stored in one of two places. It is seeded from `src/data/products.ts` on first run. Environment variables are listed in `.env.example`.
 
-**Supabase (for Vercel or any serverless host).**
-1. Create a project at supabase.com.
-2. Run `supabase/schema.sql` in the SQL Editor. It creates the `store` table and the private `uploads` bucket.
-3. Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API) in your host's environment variables, plus `ADMIN_PASSWORD`.
+**Neon Postgres (for Vercel or any serverless host).**
+1. Create a project at neon.tech (or add Neon from Vercel → Storage, which sets the variable for you).
+2. Set `DATABASE_URL` (Neon → Connect) and `ADMIN_PASSWORD` in your host's environment variables.
 
-The key is used only on the server. Writes use optimistic locking, so simultaneous orders don't overwrite each other. On Vercel a single upload is limited to about 4.5 MB.
+The tables (`store` for everything the dashboard edits, `uploads` for photos and customer designs) are created automatically on the first request. The connection string is used only on the server. Writes use optimistic locking, so simultaneous orders don't overwrite each other. On Vercel a single upload is limited to about 4.5 MB.
 
-**Local files (when the Supabase variables are not set).** Data goes to `data/` (git-ignored): `store.json` + `uploads/`. Set `DATA_DIR` to put it elsewhere. Use this on a host with a persistent disk (a VPS, or Railway/Render with a volume), and back up the folder.
+**Local files (when `DATABASE_URL` is not set).** Data goes to `data/` (git-ignored): `store.json` + `uploads/`. Set `DATA_DIR` to put it elsewhere. Use this on a host with a persistent disk (a VPS, or Railway/Render with a volume), and back up the folder.
 
-Moving to Supabase starts from the seed. Products you added locally have to be re-entered, or copy `data/store.json` into the `store` row's `data` column and the files into the bucket.
+A new Neon database starts from the seed. Anything added locally in `data/` doesn't move over by itself.
 
 ## What's real and what's placeholder
 
