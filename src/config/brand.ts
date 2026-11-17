@@ -12,12 +12,7 @@ export const BRAND = {
   instagram: "@dravx.studio", // PLACEHOLDER
   currency: "USD", // PLACEHOLDER — store currency
   locale: "en-US",
-  freeShippingThreshold: 150, // PLACEHOLDER — in currency units
-  /**
-   * Checkout is NOT connected to a payment provider.
-   * Flip to true only once a real provider (Shopify, Stripe…) is wired in /app/checkout.
-   */
-  paymentsLive: false,
+  // shipping fee, free-shipping threshold and the customizer switch live in /admin/settings
 } as const;
 
 export function formatPrice(amount: number) {

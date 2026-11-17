@@ -2,13 +2,14 @@
 
 import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
-import { products } from "@/data/products";
+import { useCatalog } from "@/lib/catalog";
 import { ProductCard } from "@/components/product/ProductCard";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import styles from "./DropGrid.module.css";
 
 export function DropGrid() {
   const root = useRef<HTMLElement>(null);
+  const products = useCatalog().products.slice(0, 6);
 
   useGSAP(
     () => {

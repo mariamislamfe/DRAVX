@@ -13,6 +13,7 @@ export const NAV = [
   { href: "/shop", label: "Shop all" },
   { href: "/shop?world=daydream", label: "Daydream" },
   { href: "/shop?world=nightshift", label: "Nightshift" },
+  { href: "/customize", label: "Customize" },
   { href: "/about", label: "Manifesto" },
 ];
 

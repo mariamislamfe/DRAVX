@@ -14,7 +14,7 @@ export function CartLineItem({ line, large }: { line: ResolvedLine; large?: bool
   const ref = useRef<HTMLLIElement>(null);
   const setQty = useCart((s) => s.setQty);
   const remove = useCart((s) => s.remove);
-  const variant = line.product.printVariants?.find((v) => v.id === line.variant);
+  const p = line.product;
 
   const onRemove = () => {
     const el = ref.current;
@@ -28,24 +28,28 @@ export function CartLineItem({ line, large }: { line: ResolvedLine; large?: bool
   return (
     <li ref={ref} className={`${styles.line} ${large ? styles.lineLarge : ""}`}>
       <TransitionLink
-        href={`/product/${line.product.slug}`}
+        href={line.href}
         className={styles.thumb}
-        transition={{ label: line.product.shortName, tone: line.product.world === "daydream" ? "concrete" : "blue" }}
-        aria-label={line.product.name}
+        transition={p ? { label: p.shortName, tone: p.world === "daydream" ? "concrete" : "blue" } : { label: "Custom", tone: "blue" }}
+        aria-label={line.name}
       >
-        <ProductVisual product={line.product} kind="back" variant={line.variant} tag={false} sizes="120px" />
+        {p ? (
+          <ProductVisual product={p} kind="back" variant={line.variant} tag={false} sizes="120px" />
+        ) : (
+          <div style={{ width: "100%", height: "100%", background: "var(--paper-2)" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- user upload, already sized */}
+            {line.thumb && <img src={line.thumb} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />}
+          </div>
+        )}
       </TransitionLink>
       <div className={styles.lineInfo}>
         <div className={styles.lineTop}>
-          <h3 className={styles.lineName}>{line.product.name}</h3>
+          <h3 className={styles.lineName}>{line.name}</h3>
           <span className="mono">{formatPrice(line.lineTotal)}</span>
         </div>
-        <p className={`${styles.lineMeta} mono`}>
-          {line.product.colorName} · Size {line.size}
-          {variant ? ` · ${variant.label}` : ""}
-        </p>
+        <p className={`${styles.lineMeta} mono`}>{line.meta}</p>
         <div className={styles.lineActions}>
-          <QtyStepper compact value={line.qty} onChange={(q) => setQty(line.key, q)} label={`Quantity for ${line.product.name}`} />
+          <QtyStepper compact value={line.qty} onChange={(q) => setQty(line.key, q)} label={`Quantity for ${line.name}`} />
           <button type="button" className={`${styles.remove} mono link-u`} onClick={onRemove}>
             Remove
           </button>

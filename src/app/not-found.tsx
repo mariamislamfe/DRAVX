@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { Garment } from "@/components/product/Garment";
-import { getProduct } from "@/data/products";
+import { StoreShell } from "@/components/layout/StoreShell";
+import { getCatalog } from "@/server/db";
+import { connection } from "next/server";
+import { byWorld } from "@/data/products";
 
-export default function NotFound() {
+export default async function NotFound() {
+  await connection(); // live catalog, not a build-time snapshot
+  const product = byWorld((await getCatalog()).products, "nightshift");
   return (
+    <StoreShell>
     <section
       style={{
         minHeight: "100svh",
@@ -16,7 +22,7 @@ export default function NotFound() {
     >
       <div style={{ display: "grid", gap: 20, justifyItems: "center" }}>
         <div style={{ width: "min(260px, 60vw)", transform: "rotate(-8deg)" }} aria-hidden="true">
-          <Garment product={getProduct("third-eye-hoodie")!} view="back" variant="minimal-symbol" decorative sizes="260px" />
+          {product && <Garment product={product} view="back" variant={product.printVariants?.at(-1)?.id} decorative sizes="260px" />}
         </div>
         <p className="mono" style={{ color: "var(--blue-hi)" }}>
           Error 404
@@ -30,5 +36,6 @@ export default function NotFound() {
         </Link>
       </div>
     </section>
+    </StoreShell>
   );
 }

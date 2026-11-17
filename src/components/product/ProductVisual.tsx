@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { getImage, type ImageKind, type Product } from "@/data/products";
 import { HoodieRender } from "./HoodieRender";
+import { PhotoPending, hasPhotos } from "./Garment";
 import styles from "./ProductVisual.module.css";
 
 type Props = {
@@ -24,6 +25,14 @@ export function ProductVisual({ product, kind, variant, className = "", priority
   const scene = kind === "model" || kind === "campaign";
   const img = getImage(product, kind, variant);
   const backImg = getImage(product, "back", variant);
+
+  if (!hasPhotos(product)) {
+    return (
+      <div className={`${styles.frame} ${className}`} data-world={product.world} data-kind={kind}>
+        <PhotoPending name={product.shortName} />
+      </div>
+    );
+  }
 
   // dedicated photography for this slot (e.g. a future model shoot)
   if (scene && img.src) {

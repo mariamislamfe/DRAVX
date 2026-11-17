@@ -4,7 +4,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { gsap, ScrollTrigger, splitChars } from "@/lib/gsap";
 import { useOnReady } from "@/lib/useReady";
-import { products, WORLDS, type World } from "@/data/products";
+import { type World } from "@/data/products";
+import { useCatalog } from "@/lib/catalog";
 import { ProductCard } from "@/components/product/ProductCard";
 import styles from "./Shop.module.css";
 
@@ -31,6 +32,10 @@ export function ShopView() {
   const indicator = useRef<HTMLSpanElement>(null);
   const tabs = useRef<Record<string, HTMLButtonElement | null>>({});
   const grid = useRef<HTMLDivElement>(null);
+  const { products: all, categories } = useCatalog();
+  const cats = categories.filter((c) => all.some((p) => p.categoryId === c.id));
+  const cat = cats.some((c) => c.id === params.get("cat")) ? params.get("cat")! : "all";
+  const products = cat === "all" ? all : all.filter((p) => p.categoryId === cat);
 
   const filter = (FILTERS.some((f) => f.id === params.get("world")) ? params.get("world") : "all") as Filter;
   const sort = (SORTS.some((s) => s.id === params.get("sort")) ? params.get("sort") : "featured") as Sort;
@@ -43,12 +48,15 @@ export function ShopView() {
       if (sort === "newest") return b.addedAt.localeCompare(a.addedAt);
       return a.rank - b.rank;
     });
-  }, [filter, sort]);
+  }, [filter, sort, products]);
 
-  const update = (next: Partial<{ world: Filter; sort: Sort }>) => {
+  const update = (next: Partial<{ world: Filter; sort: Sort; cat: string }>) => {
     const sp = new URLSearchParams(params.toString());
     const w = next.world ?? filter;
     const s = next.sort ?? sort;
+    const c = next.cat ?? cat;
+    if (c === "all") sp.delete("cat");
+    else sp.set("cat", c);
     if (w === "all") sp.delete("world");
     else sp.set("world", w);
     if (s === "featured") sp.delete("sort");
@@ -121,6 +129,19 @@ export function ShopView() {
             </button>
           ))}
         </div>
+        {cats.length > 1 && (
+          <label className={`${styles.sort} mono`}>
+            <span>Category</span>
+            <select value={cat} onChange={(e) => update({ cat: e.target.value })}>
+              <option value="all">All</option>
+              {cats.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className={`${styles.sort} mono`}>
           <span>Sort</span>
           <select value={sort} onChange={(e) => update({ sort: e.target.value as Sort })}>
@@ -137,7 +158,7 @@ export function ShopView() {
         {list.length === 0 ? (
           <div className={styles.empty} data-cell>
             <p className="display">Nothing here yet.</p>
-            <button type="button" className="btn" onClick={() => update({ world: "all" })}>
+            <button type="button" className="btn" onClick={() => update({ world: "all", cat: "all" })}>
               Show everything
             </button>
           </div>

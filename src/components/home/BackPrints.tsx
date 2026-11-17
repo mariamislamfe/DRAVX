@@ -2,7 +2,8 @@
 
 import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
-import { products } from "@/data/products";
+import type { Product } from "@/data/products";
+import { useCatalog } from "@/lib/catalog";
 import { formatPrice } from "@/config/brand";
 import { Garment } from "@/components/product/Garment";
 import { TransitionLink } from "@/components/transition/TransitionLink";
@@ -10,8 +11,8 @@ import { productTransition } from "@/components/product/ProductCard";
 import styles from "./BackPrints.module.css";
 
 /** Every back design in the drop, one card each, linking straight to it. */
-type Item = { product: (typeof products)[number]; variant?: string; label: string; href: string };
-const ITEMS: Item[] = products.flatMap((p): Item[] =>
+type Item = { product: Product; variant?: string; label: string; href: string };
+const items = (products: Product[]): Item[] => products.flatMap((p): Item[] =>
   p.printVariants
     ? p.printVariants.map((v) => ({ product: p, variant: v.id, label: v.label, href: `/product/${p.slug}?print=${v.id}` }))
     : [{ product: p, variant: undefined, label: p.shortName, href: `/product/${p.slug}` }]
@@ -19,6 +20,7 @@ const ITEMS: Item[] = products.flatMap((p): Item[] =>
 
 export function BackPrints() {
   const root = useRef<HTMLElement>(null);
+  const ITEMS = items(useCatalog().products);
 
   useGSAP(
     () => {

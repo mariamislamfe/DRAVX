@@ -5,9 +5,8 @@ import { gsap, useGSAP } from "@/lib/gsap";
 import { useOnReady } from "@/lib/useReady";
 import { WORLDS } from "@/data/products";
 import { Garment } from "@/components/product/Garment";
-import { products } from "@/data/products";
 
-const byWorld = (w: "daydream" | "nightshift") => products.find((p) => p.world === w)!;
+import { byWorld as pick, useCatalog } from "@/lib/catalog";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import { Marquee } from "@/components/home/Marquee";
 import styles from "./About.module.css";
@@ -37,6 +36,8 @@ const CHAPTERS = [
 
 export function AboutView() {
   const root = useRef<HTMLDivElement>(null);
+  const { products } = useCatalog();
+  const byWorld = (w: "daydream" | "nightshift") => pick(products, w)!;
   const intro = useRef<gsap.core.Timeline | null>(null);
 
   useGSAP(
@@ -108,7 +109,7 @@ export function AboutView() {
               <Garment product={byWorld("nightshift")} view="front" priority decorative />
             </div>
             <div className={`${styles.face} ${styles.faceBack}`}>
-              <Garment product={byWorld("nightshift")} view="back" variant="minimal-symbol" decorative />
+              <Garment product={byWorld("nightshift")} view="back" variant={byWorld("nightshift").printVariants?.at(-1)?.id} decorative />
             </div>
           </div>
         </div>

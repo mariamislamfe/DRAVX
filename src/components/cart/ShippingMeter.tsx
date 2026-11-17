@@ -1,9 +1,13 @@
-import { BRAND, formatPrice } from "@/config/brand";
+"use client";
+
+import { formatPrice } from "@/config/brand";
+import { useCatalog } from "@/lib/catalog";
 import styles from "./Cart.module.css";
 
 export function ShippingMeter({ subtotal }: { subtotal: number }) {
-  const remaining = Math.max(0, BRAND.freeShippingThreshold - subtotal);
-  const pct = Math.min(100, (subtotal / BRAND.freeShippingThreshold) * 100);
+  const threshold = useCatalog().settings.freeShippingThreshold;
+  const remaining = Math.max(0, threshold - subtotal);
+  const pct = threshold > 0 ? Math.min(100, (subtotal / threshold) * 100) : 100;
   return (
     <div className={styles.meter}>
       <p className="mono">

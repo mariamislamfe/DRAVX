@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap";
 import { useOnReady } from "@/lib/useReady";
-import { products, type World } from "@/data/products";
+import { byWorld, useCatalog } from "@/lib/catalog";
 import { formatPrice } from "@/config/brand";
 import { Garment } from "@/components/product/Garment";
 import { TransitionLink } from "@/components/transition/TransitionLink";
@@ -11,7 +11,6 @@ import { useTransitionNav } from "@/components/transition/TransitionProvider";
 import { productTransition } from "@/components/product/ProductCard";
 import styles from "./Hero.module.css";
 
-const byWorld = (w: World) => products.find((p) => p.world === w)!;
 
 /**
  * Shoppable hero. Both hoodies are seen from the back in the same spot,
@@ -26,8 +25,9 @@ export function Hero() {
   const splitVal = useRef(50);
   const ready = useRef(false);
   const { navigate } = useTransitionNav();
-  const day = byWorld("daydream");
-  const night = byWorld("nightshift");
+  const { products } = useCatalog();
+  const day = byWorld(products, "daydream")!;
+  const night = byWorld(products, "nightshift")!;
 
   useGSAP(
     () => {

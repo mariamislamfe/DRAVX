@@ -4,7 +4,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "@/lib/gsap";
 import { useCart, useUI } from "@/lib/store";
 import { flyToCart } from "@/lib/fly";
-import { BRAND, formatPrice } from "@/config/brand";
+import { formatPrice } from "@/config/brand";
+import { useCatalog } from "@/lib/catalog";
 import { WORLDS, type Product, type Size } from "@/data/products";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import Image from "next/image";
@@ -23,6 +24,7 @@ export function BuyPanel({ product, variant, onVariant }: { product: Product; va
   const [guide, setGuide] = useState(false);
   const [barVisible, setBarVisible] = useState(false);
   const add = useCart((s) => s.add);
+  const freeOver = useCatalog().settings.freeShippingThreshold;
   const setCartOpen = useUI((s) => s.setCartOpen);
   const sizesRef = useRef<HTMLDivElement>(null);
   const hiRef = useRef<HTMLSpanElement>(null);
@@ -119,7 +121,7 @@ export function BuyPanel({ product, variant, onVariant }: { product: Product; va
         </h1>
         <div className={styles.priceRow} data-buy>
           <p className={`${styles.price} display`}>{formatPrice(product.price)}</p>
-          <p className={`${styles.priceNote} mono`}>Taxes & shipping at checkout</p>
+          <p className={`${styles.priceNote} mono`}>Shipping at checkout · cash on delivery</p>
         </div>
         <p className={styles.tagline} data-buy>
           {product.tagline}
@@ -142,7 +144,15 @@ export function BuyPanel({ product, variant, onVariant }: { product: Product; va
                 <label key={v.id} className={styles.variant} data-on={variant === v.id || undefined}>
                   <input type="radio" name="print" value={v.id} checked={variant === v.id} onChange={() => onVariant(v.id)} className="sr-only" />
                   <span className={styles.variantArt} aria-hidden="true">
-                    <Image src={getImage(product, "back", v.id).src!} alt="" fill sizes="120px" style={{ objectFit: "cover", objectPosition: "50% 45%", transform: "scale(1.55)" }} />
+                    {(() => {
+                      const art = getImage(product, "back", v.id);
+                      const src = art.variant === v.id ? art.src ?? art.cutout : undefined;
+                      return src ? (
+                        <Image src={src} alt="" fill sizes="120px" style={{ objectFit: "cover", objectPosition: "50% 45%", transform: "scale(1.55)" }} />
+                      ) : (
+                        <span className="display" style={{ display: "grid", placeItems: "center", height: "100%" }}>{v.note}</span>
+                      );
+                    })()}
                   </span>
                   <span className="mono">{v.label}</span>
                 </label>
@@ -222,7 +232,7 @@ export function BuyPanel({ product, variant, onVariant }: { product: Product; va
         )}
 
         <p className={`${styles.perk} mono`} data-buy>
-          ✳ Free shipping over {formatPrice(BRAND.freeShippingThreshold)}
+          ✳ Free shipping over {formatPrice(freeOver)}
         </p>
 
         <div data-buy>

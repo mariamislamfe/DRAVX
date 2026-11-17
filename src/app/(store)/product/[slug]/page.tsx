@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { getProduct, products, WORLDS } from "@/data/products";
+import { WORLDS } from "@/data/products";
+import { getCatalog } from "@/server/db";
 import { BRAND } from "@/config/brand";
 import { ProductView } from "@/components/pdp/ProductView";
 
-export function generateStaticParams() {
-  return products.map((p) => ({ slug: p.slug }));
+async function getProduct(slug: string) {
+  return (await getCatalog()).products.find((p) => p.slug === slug);
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const p = getProduct(slug);
+  const p = await getProduct(slug);
   if (!p) return {};
   return {
     title: `${p.name} — ${WORLDS[p.world].label}`,
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const product = getProduct(slug);
+  const product = await getProduct(slug);
   if (!product) notFound();
 
   const jsonLd = {
@@ -37,7 +38,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       "@type": "Offer",
       price: product.price,
       priceCurrency: BRAND.currency,
-      availability: "https://schema.org/InStock",
+      availability: product.soldOut.length >= product.sizes.length ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
       url: `${BRAND.url}/product/${product.slug}`,
     },
   };

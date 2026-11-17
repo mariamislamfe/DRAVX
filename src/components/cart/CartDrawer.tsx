@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { gsap } from "@/lib/gsap";
 import { useCart, useHydrated, useUI } from "@/lib/store";
 import { cartTotals } from "@/lib/cart";
+import { useCatalog } from "@/lib/catalog";
 import { formatPrice } from "@/config/brand";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import { CartLineItem } from "./CartLineItem";
@@ -15,7 +16,7 @@ export function CartDrawer() {
   const setOpen = useUI((s) => s.setCartOpen);
   const lines = useCart((s) => s.lines);
   const hydrated = useHydrated();
-  const { resolved, subtotal, count } = cartTotals(hydrated ? lines : []);
+  const { resolved, subtotal, count } = cartTotals(hydrated ? lines : [], useCatalog());
   const root = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLElement>(null);
   const lastFocus = useRef<HTMLElement | null>(null);
@@ -109,7 +110,7 @@ export function CartDrawer() {
                 <span className="mono">Subtotal</span>
                 <span className="display">{formatPrice(subtotal)}</span>
               </div>
-              <p className={`${styles.note} mono`}>Shipping & taxes calculated at checkout.</p>
+              <p className={`${styles.note} mono`}>Shipping calculated at checkout · cash on delivery.</p>
               <TransitionLink href="/checkout" className="btn btn--ink btn--block">
                 Checkout <span className="arrow">→</span>
               </TransitionLink>

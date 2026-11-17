@@ -12,6 +12,7 @@
  */
 
 export type World = "daydream" | "nightshift";
+export const WORLD_IDS: World[] = ["daydream", "nightshift"];
 export type Size = "XS" | "S" | "M" | "L" | "XL" | "XXL";
 export type ImageKind = "front" | "back" | "detail-front" | "detail-back" | "model" | "campaign";
 
@@ -31,6 +32,10 @@ export type PrintVariant = {
 
 export type Product = {
   slug: string;
+  /** category id (see Category in schema.ts) */
+  categoryId: string;
+  /** hidden from the store when false */
+  active: boolean;
   name: string;
   shortName: string;
   world: World;
@@ -69,9 +74,12 @@ export const SIZES: Size[] = ["XS", "S", "M", "L", "XL", "XXL"];
 const REX = "/products/rex-doodle-hoodie";
 const EYE = "/products/third-eye-hoodie";
 
-export const products: Product[] = [
+/** First-run seed. After that the catalog lives in the data store and is edited from /admin. */
+export const SEED_PRODUCTS: Product[] = [
   {
     slug: "rex-doodle-hoodie",
+    categoryId: "hoodies",
+    active: true,
     name: "ROARR Rex Hoodie",
     shortName: "ROARR Rex",
     world: "daydream",
@@ -106,6 +114,8 @@ export const products: Product[] = [
   },
   {
     slug: "third-eye-hoodie",
+    categoryId: "hoodies",
+    active: true,
     name: "Third Eye Hoodie",
     shortName: "Third Eye",
     world: "nightshift",
@@ -149,10 +159,6 @@ export const products: Product[] = [
   },
 ];
 
-export function getProduct(slug: string) {
-  return products.find((p) => p.slug === slug);
-}
-
 /**
  * Best image for a slot. Variant-specific images win; a missing variant
  * detail falls back to that variant's back view so the print shown always
@@ -172,4 +178,9 @@ export function getImage(product: Product, kind: ImageKind, variant?: string): P
 /** Transparent garment for staged layouts. */
 export function getCutout(product: Product, view: "front" | "back", variant?: string) {
   return getImage(product, view, variant).cutout;
+}
+
+/** The flagship product for a world, falling back to anything available. */
+export function byWorld(products: Product[], w: World): Product | undefined {
+  return products.find((p) => p.world === w) ?? products[0];
 }

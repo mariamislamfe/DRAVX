@@ -5,7 +5,7 @@ import { gsap } from "@/lib/gsap";
 import { useUI } from "@/lib/store";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import { Garment } from "@/components/product/Garment";
-import { products } from "@/data/products";
+import { useCatalog } from "@/lib/catalog";
 import { BRAND } from "@/config/brand";
 import { NAV } from "./Header";
 import styles from "./MobileMenu.module.css";
@@ -14,6 +14,7 @@ export function MobileMenu() {
   const open = useUI((s) => s.menuOpen);
   const setOpen = useUI((s) => s.setMenuOpen);
   const ref = useRef<HTMLDivElement>(null);
+  const products = useCatalog().products.slice(0, 3);
   const tl = useRef<gsap.core.Timeline | null>(null);
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export function MobileMenu() {
           ))}
           <li className="mask">
             <TransitionLink href="/cart" data-item className={`${styles.link} display`}>
-              <span className={`${styles.idx} mono`}>05</span>
+              <span className={`${styles.idx} mono`}>{String(NAV.length + 1).padStart(2, "0")}</span>
               Bag
             </TransitionLink>
           </li>

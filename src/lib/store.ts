@@ -4,13 +4,15 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { useEffect, useState } from "react";
 import type { Size } from "@/data/products";
+import type { CustomDesign } from "@/data/schema";
 
 export type CartLine = {
-  key: string; // slug|size|variant
-  slug: string;
+  key: string; // slug|size|variant, or custom|<id> for customizer designs
+  slug: string; // template id for custom lines
   size: Size;
   variant?: string;
   qty: number;
+  custom?: CustomDesign;
 };
 
 type CartState = {
@@ -29,7 +31,7 @@ export const useCart = create<CartState>()(
       lines: [],
       add: (line, qty = 1) =>
         set((s) => {
-          const key = [line.slug, line.size, line.variant ?? ""].join("|");
+          const key = line.custom ? `custom|${crypto.randomUUID()}` : [line.slug, line.size, line.variant ?? ""].join("|");
           const existing = s.lines.find((l) => l.key === key);
           if (existing) {
             return {

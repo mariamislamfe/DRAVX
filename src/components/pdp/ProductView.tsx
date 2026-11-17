@@ -4,7 +4,8 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { gsap, useGSAP, splitChars } from "@/lib/gsap";
 import { useOnReady } from "@/lib/useReady";
-import { getProduct, products, WORLDS, type ImageKind } from "@/data/products";
+import { type ImageKind } from "@/data/products";
+import { findProduct, useCatalog } from "@/lib/catalog";
 import { ProductCard } from "@/components/product/ProductCard";
 import { NotifyTile } from "@/components/product/NotifyTile";
 import { ProductVisual } from "@/components/product/ProductVisual";
@@ -14,7 +15,8 @@ import { Lightbox } from "./Lightbox";
 import styles from "./Pdp.module.css";
 
 export function ProductView({ slug }: { slug: string }) {
-  const product = getProduct(slug)!;
+  const catalog = useCatalog();
+  const product = findProduct(catalog, slug)!;
   const params = useSearchParams();
   const initialVariant = product.printVariants?.find((v) => v.id === params.get("print"))?.id ?? product.printVariants?.[0]?.id;
   const [view, setView] = useState<ImageKind>(params.get("print") ? "back" : "front");
@@ -22,7 +24,7 @@ export function ProductView({ slug }: { slug: string }) {
   const [zoom, setZoom] = useState<number | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const intro = useRef<gsap.core.Timeline | null>(null);
-  const related = products.filter((p) => p.slug !== product.slug);
+  const related = catalog.products.filter((p) => p.slug !== product.slug).slice(0, 3);
 
   const chooseVariant = (id: string) => {
     setVariant(id);

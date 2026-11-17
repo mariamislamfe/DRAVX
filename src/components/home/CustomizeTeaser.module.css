@@ -1,0 +1,137 @@
+.section {
+  padding: clamp(70px, 9vw, 130px) 0;
+  overflow: hidden;
+}
+.inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: clamp(32px, 5vw, 80px);
+  align-items: center;
+}
+.copy {
+  display: grid;
+  gap: 20px;
+  justify-items: start;
+}
+.copy h2 {
+  font-size: var(--step-4);
+  line-height: 0.92;
+}
+.copy h2 em {
+  color: var(--blue);
+}
+.lead {
+  font-size: var(--step-1);
+  max-width: 34ch;
+  color: var(--muted);
+}
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 8px;
+  display: grid;
+  gap: 0;
+  width: 100%;
+  max-width: 460px;
+}
+.steps li {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  column-gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+.steps li:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.steps li > :first-child {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  color: var(--blue);
+  padding-top: 2px;
+}
+.steps strong {
+  grid-column: 2;
+  font-weight: 600;
+}
+.steps li > span:last-child {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  place-items: center;
+  min-height: clamp(360px, 46vw, 640px);
+  background: radial-gradient(70% 60% at 50% 55%, #fffdf8, transparent 70%);
+}
+.garment {
+  position: relative;
+  grid-area: 1 / 1;
+  width: min(78%, 460px);
+  transition: transform 0.8s var(--ease-out);
+}
+.garment img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 28px 30px rgba(0, 0, 0, 0.22));
+  user-select: none;
+}
+/* two colours: the first sits behind, offset to the left */
+.garment[data-count="2"][data-i="0"] {
+  transform: translate(-30%, -4%) rotate(-7deg) scale(0.86);
+}
+.garment[data-count="2"][data-i="1"] {
+  transform: translate(14%, 4%) rotate(3deg);
+}
+.stage:hover .garment[data-count="2"][data-i="0"] {
+  transform: translate(-36%, -6%) rotate(-10deg) scale(0.86);
+}
+.stage:hover .garment[data-count="2"][data-i="1"] {
+  transform: translate(18%, 2%) rotate(1deg);
+}
+
+.area {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--blue);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--blue) 8%, transparent);
+  color: var(--ink);
+  text-align: center;
+}
+.area[data-dark] {
+  border-color: var(--blue-hi);
+  color: var(--paper);
+  background: color-mix(in srgb, var(--blue-hi) 10%, transparent);
+}
+.area > span {
+  font-size: clamp(1rem, 2.4vw, 1.8rem);
+  transform: rotate(-6deg);
+}
+
+@media (max-width: 900px) {
+  .inner {
+    grid-template-columns: 1fr;
+  }
+  .stage {
+    order: -1;
+    min-height: 0;
+    padding: 12px 0 0;
+  }
+  .garment {
+    width: min(62%, 360px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .garment {
+    transition: none;
+  }
+}

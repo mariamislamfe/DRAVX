@@ -1,0 +1,75 @@
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { UPLOAD_DIR } from "./db";
+import { BUCKET, sb, supabaseEnabled } from "./supabase";
+
+export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+
+const TYPES = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  webp: "image/webp",
+} as const;
+export type UploadExt = keyof typeof TYPES;
+
+/** Identify the file from its bytes, never from the name or the browser's claim. */
+export function sniff(buf: Buffer): UploadExt | null {
+  if (buf.length < 12) return null;
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return "png";
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "jpg";
+  if (buf.toString("ascii", 0, 4) === "RIFF" && buf.toString("ascii", 8, 12) === "WEBP") return "webp";
+  return null;
+}
+
+const NAME_RE = /^(?:[a-z]+-)?[0-9a-f-]{36}\.(png|jpg|webp)$/;
+
+export function isUploadUrl(url: unknown): url is string {
+  return typeof url === "string" && url.startsWith("/uploads/") && NAME_RE.test(url.slice("/uploads/".length));
+}
+
+export async function saveUpload(buf: Buffer, prefix: "design" | "admin"): Promise<string> {
+  const ext = sniff(buf);
+  if (!ext) throw new Error("Only PNG, JPG or WebP images are accepted.");
+  if (buf.length > MAX_UPLOAD_BYTES) throw new Error("File is larger than 15 MB.");
+  const name = `${prefix}-${randomUUID()}.${ext}`;
+  if (supabaseEnabled()) {
+    const { error } = await sb().storage.from(BUCKET).upload(name, buf, { contentType: TYPES[ext], upsert: false });
+    if (error) throw new Error(`Upload failed: ${error.message}`);
+    return `/uploads/${name}`;
+  }
+  await fs.mkdir(UPLOAD_DIR, { recursive: true });
+  await fs.writeFile(path.join(UPLOAD_DIR, name), buf);
+  return `/uploads/${name}`;
+}
+
+export async function readUpload(name: string) {
+  if (!NAME_RE.test(name)) return null;
+  const ext = name.split(".").pop() as UploadExt;
+  try {
+    if (supabaseEnabled()) {
+      const { data, error } = await sb().storage.from(BUCKET).download(name);
+      if (error || !data) return null;
+      return { buf: Buffer.from(await data.arrayBuffer()), type: TYPES[ext] };
+    }
+    const buf = await fs.readFile(path.join(UPLOAD_DIR, name));
+    return { buf, type: TYPES[ext] };
+  } catch {
+    return null;
+  }
+}
+
+export async function uploadExists(url: string) {
+  if (!isUploadUrl(url)) return false;
+  if (supabaseEnabled()) {
+    const name = url.slice("/uploads/".length);
+    const { data, error } = await sb().storage.from(BUCKET).list("", { search: name, limit: 1 });
+    return !error && !!data?.some((f) => f.name === name);
+  }
+  try {
+    await fs.access(path.join(UPLOAD_DIR, url.slice("/uploads/".length)));
+    return true;
+  } catch {
+    return false;
+  }
+}

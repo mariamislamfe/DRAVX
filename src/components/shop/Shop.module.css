@@ -189,3 +189,10 @@
     align-items: flex-start;
   }
 }
+
+/* category + sort sit together on the right */
+@media (min-width: 701px) {
+  .controls > .tabs {
+    margin-right: auto;
+  }
+}

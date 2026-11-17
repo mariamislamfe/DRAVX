@@ -5,8 +5,8 @@ import { gsap, splitChars } from "@/lib/gsap";
 import { useOnReady } from "@/lib/useReady";
 import { useCart, useHydrated } from "@/lib/store";
 import { cartTotals } from "@/lib/cart";
-import { BRAND, formatPrice } from "@/config/brand";
-import { products } from "@/data/products";
+import { formatPrice } from "@/config/brand";
+import { useCatalog } from "@/lib/catalog";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import { ProductCard } from "@/components/product/ProductCard";
 import { CartLineItem } from "./CartLineItem";
@@ -16,11 +16,12 @@ import styles from "./CartPage.module.css";
 export function CartView() {
   const hydrated = useHydrated();
   const lines = useCart((s) => s.lines);
-  const { resolved, subtotal, count } = cartTotals(hydrated ? lines : []);
+  const catalog = useCatalog();
+  const { resolved, subtotal, count, shipping, total } = cartTotals(hydrated ? lines : [], catalog);
   const root = useRef<HTMLDivElement>(null);
   const intro = useRef<gsap.core.Timeline | null>(null);
   const inBag = new Set(resolved.map((l) => l.slug));
-  const suggestions = products.filter((p) => !inBag.has(p.slug));
+  const suggestions = catalog.products.filter((p) => !inBag.has(p.slug)).slice(0, 3);
 
   useLayoutEffect(() => {
     const chars = splitChars(root.current!.querySelector<HTMLElement>("[data-title]")!);
@@ -85,16 +86,16 @@ export function CartView() {
                 </div>
                 <div>
                   <dt>Shipping</dt>
-                  <dd>{subtotal >= BRAND.freeShippingThreshold ? "Free" : "At checkout"}</dd>
+                  <dd>{shipping === 0 ? "Free" : formatPrice(shipping)}</dd>
                 </div>
                 <div>
-                  <dt>Taxes</dt>
-                  <dd>At checkout</dd>
+                  <dt>Payment</dt>
+                  <dd>Cash on delivery</dd>
                 </div>
               </dl>
               <div className={styles.total}>
                 <span className="mono">Estimated total</span>
-                <span className="display">{formatPrice(subtotal)}</span>
+                <span className="display">{formatPrice(total)}</span>
               </div>
               <TransitionLink href="/checkout" className="btn btn--ink btn--block">
                 Checkout <span className="arrow">→</span>

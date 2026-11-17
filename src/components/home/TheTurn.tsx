@@ -2,7 +2,8 @@
 
 import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
-import { products, WORLDS } from "@/data/products";
+import { WORLDS } from "@/data/products";
+import { byWorld, useCatalog } from "@/lib/catalog";
 import { formatPrice } from "@/config/brand";
 import { ProductVisual } from "@/components/product/ProductVisual";
 import { TransitionLink } from "@/components/transition/TransitionLink";
@@ -26,6 +27,9 @@ const NOTES: Record<string, { front: string[]; back: string[] }> = {
  */
 export function TheTurn() {
   const root = useRef<HTMLElement>(null);
+  const all = useCatalog().products;
+  // the turn choreography is built for exactly two hoodies: one per world
+  const products = [byWorld(all, "daydream")!, byWorld(all, "nightshift")!];
 
   useGSAP(
     () => {
@@ -93,8 +97,8 @@ export function TheTurn() {
         </div>
 
         <div className={styles.texts}>
-          {products.map((p) => (
-            <div key={p.slug} className={styles.text} data-world={p.world}>
+          {products.map((p, i) => (
+            <div key={`${p.slug}-${i}`} className={styles.text} data-world={p.world}>
               <span className="mask">
                 <span data-t className="mono">
                   {WORLDS[p.world].index} / {WORLDS[p.world].label}
@@ -122,8 +126,8 @@ export function TheTurn() {
         </div>
 
         <div className={styles.stage}>
-          {products.map((p) => (
-            <div key={p.slug} className={styles.card} data-world={p.world}>
+          {products.map((p, i) => (
+            <div key={`${p.slug}-${i}`} className={styles.card} data-world={p.world}>
               <div className={styles.inner}>
                 <div className={`${styles.face} ${styles.front}`}>
                   <ProductVisual product={p} kind="front" sizes="(max-width: 900px) 80vw, 36vw" />
@@ -137,8 +141,8 @@ export function TheTurn() {
         </div>
 
         <div className={styles.notes}>
-          {products.map((p) => (
-            <div key={p.slug} className={styles.noteSet}>
+          {products.map((p, i) => (
+            <div key={`${p.slug}-${i}`} className={styles.noteSet}>
               <ul className={styles.notesFront} aria-label={`${p.shortName} front details`}>
                 {NOTES[p.slug].front.map((n) => (
                   <li key={n}>
