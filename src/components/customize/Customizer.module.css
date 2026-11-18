@@ -332,21 +332,25 @@
 }
 
 /* ---- review ---- */
+/* Review popup: always fits the screen, the garment images shrink to make room. */
 .modal {
   position: fixed;
   inset: 0;
-  z-index: 200;
-  display: grid;
-  place-items: center;
+  z-index: 900; /* above the site header (800), below page transitions */
+  display: flex;
   padding: 16px;
   background: rgba(11, 11, 12, 0.72);
   overflow: auto;
+  overscroll-behavior: contain;
 }
 .modalCard {
+  margin: auto;
   width: min(920px, 100%);
-  display: grid;
-  gap: 18px;
-  padding: clamp(18px, 3vw, 36px);
+  max-height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: clamp(16px, 3vw, 32px);
   background: var(--paper);
   color: var(--ink);
 }
@@ -355,23 +359,50 @@
   line-height: 0.95;
 }
 .reviewGrid {
+  flex: 1 1 auto;
+  min-height: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 12px;
 }
 .reviewGrid figure {
-  display: grid;
-  gap: 8px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   margin: 0;
 }
 .reviewGrid img {
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
-  height: auto;
+  /* header, text and buttons take roughly 300px; the image gets the rest */
+  max-height: calc(100dvh - 300px);
+  object-fit: contain;
   background: var(--paper-2);
 }
 .reviewGrid figcaption {
   font-size: 0.62rem;
   opacity: 0.7;
+}
+@media (max-width: 560px) {
+  .modal {
+    padding: 10px;
+  }
+  .modalCard {
+    max-height: calc(100dvh - 20px);
+    gap: 10px;
+  }
+  .modalCard h2 {
+    font-size: var(--step-2);
+  }
+  .reviewGrid img {
+    max-height: calc(100dvh - 330px);
+  }
+  .modalCard .tools .btn {
+    flex: 1 1 100%;
+  }
 }
 
 @media (max-width: 900px) {
@@ -380,8 +411,5 @@
   }
   .stageCol {
     position: static;
-  }
-  .stage {
-    width: 100% !important;
   }
 }

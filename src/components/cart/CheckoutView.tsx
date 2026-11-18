@@ -92,10 +92,7 @@ export function CheckoutView() {
     <div className={`${styles.page} on-paper`}>
       <div className={`${styles.inner} wrap`}>
         <div>
-          <p className="mono">Checkout</p>
-          <h1 className="display">
-            Almost <em className="serif">yours.</em>
-          </h1>
+          <h1 className="sr-only">Checkout</h1>
 
           <form className={styles.form} onSubmit={submit} noValidate={false}>
             <fieldset disabled={pending || empty}>

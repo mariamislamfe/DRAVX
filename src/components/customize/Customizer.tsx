@@ -564,7 +564,7 @@ function Studio({ template: t, templates, onTemplate }: { template: CustomTempla
       </div>
 
       {review && (
-        <div className={styles.modal} role="dialog" aria-modal="true" aria-label="Confirm your design">
+        <div className={styles.modal} role="dialog" aria-modal="true" aria-label="Confirm your design" data-lenis-prevent>
           <div className={styles.modalCard}>
             <p className="mono">Step 2 · Check it</p>
             <h2 className="display">This is what we print.</h2>
