@@ -318,6 +318,8 @@ export type DB = {
   notifications: Notice[];
   discounts: Discount[];
   integrations: Record<string, IntegrationState>;
+  /** Dashboard password set from Settings (scrypt hash). Server-only. */
+  admin?: { hash: string; salt: string; changedAt: string };
   /** One-time data fixes already applied (see upgrade() in db.ts). */
   migrations?: string[];
 };

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { mutate } from "./db";
-import { checkPassword, endSession, requireAdmin, startSession } from "./auth";
+import { MIN_PASSWORD, checkPassword, endSession, hashPassword, requireAdmin, startSession } from "./auth";
 import { SIZES, WORLD_IDS, type ImageKind, type Product, type Size } from "@/data/products";
 import {
   DEFAULT_BRAND,
@@ -43,7 +43,7 @@ const sizes = (v: unknown): Size[] => (Array.isArray(v) ? SIZES.filter((s) => v.
 export async function login(_: unknown, form: FormData): Promise<{ error?: string }> {
   // small constant delay to blunt password guessing
   await new Promise((r) => setTimeout(r, 400));
-  if (!checkPassword(String(form.get("password") ?? ""))) return { error: "Wrong password." };
+  if (!(await checkPassword(String(form.get("password") ?? "")))) return { error: "Wrong password." };
   await startSession();
   redirect("/admin");
 }
@@ -51,6 +51,27 @@ export async function login(_: unknown, form: FormData): Promise<{ error?: strin
 export async function logout() {
   await endSession();
   redirect("/admin/login");
+}
+
+export async function changePassword(_: unknown, form: FormData): Promise<{ saved?: boolean; error?: string }> {
+  await requireAdmin();
+  // same small delay as sign-in, so the current-password check can't be hammered
+  await new Promise((r) => setTimeout(r, 400));
+  const current = String(form.get("current") ?? "");
+  const next = String(form.get("next") ?? "");
+  if (!(await checkPassword(current))) return { error: "Current password is wrong." };
+  if (next.length < MIN_PASSWORD) return { error: `Use at least ${MIN_PASSWORD} characters.` };
+  if (next.length > 200) return { error: "That password is too long." };
+  if (next !== String(form.get("confirm") ?? "")) return { error: "The two new passwords don't match." };
+  if (next === current) return { error: "Pick a password different from the current one." };
+  const h = hashPassword(next);
+  await mutate((db) => {
+    db.admin = h;
+  });
+  // the session key comes from the password: re-issue ours, every other device is signed out
+  await startSession();
+  revalidatePath("/admin", "layout");
+  return { saved: true };
 }
 
 /* ------------------------------------------------------------------ */
