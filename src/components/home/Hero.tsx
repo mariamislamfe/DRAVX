@@ -11,6 +11,20 @@ import { useTransitionNav } from "@/components/transition/TransitionProvider";
 import { productTransition } from "@/components/product/ProductCard";
 import styles from "./Hero.module.css";
 
+/**
+ * Backdrop for a hoodie, from its colour in the dashboard. Dark garments get
+ * a dark, tinted stage with a cool glow; light ones a soft tinted paper.
+ */
+function backdrop(hex: string) {
+  const c = /^#[0-9a-f]{6}$/i.test(hex) ? hex : "#111111";
+  const n = parseInt(c.slice(1), 16);
+  const lum = (0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+  if (lum < 0.45) {
+    return `radial-gradient(60% 65% at 60% 55%, color-mix(in srgb, ${c} 70%, #33438a) 0%, color-mix(in srgb, ${c} 80%, #0b0d18) 50%, color-mix(in srgb, ${c} 60%, #0b0b0c) 100%)`;
+  }
+  return `radial-gradient(70% 70% at 40% 55%, color-mix(in srgb, ${c} 16%, #fbf9f4) 0%, color-mix(in srgb, ${c} 30%, #ebe7de) 60%)`;
+}
+
 
 /**
  * Shoppable hero. Both hoodies are seen from the back in the same spot,
@@ -98,13 +112,13 @@ export function Hero() {
   return (
     <section ref={root} className={styles.hero} aria-labelledby="hero-title">
       <div ref={stage} className={styles.stage} onClick={openHalf} role="presentation">
-        <div className={`${styles.world} ${styles.night}`} aria-hidden="true">
+        <div className={`${styles.world} ${styles.night}`} style={{ background: backdrop(night.colorHex) }} aria-hidden="true">
           <div className={styles.beam} />
           <div className={styles.figures}>
             <Garment product={night} view="back" priority decorative sizes="(max-width: 900px) 90vw, 46vw" />
           </div>
         </div>
-        <div className={`${styles.world} ${styles.day}`} aria-hidden="true">
+        <div className={`${styles.world} ${styles.day}`} style={{ background: backdrop(day.colorHex) }} aria-hidden="true">
           <div className={styles.figures}>
             <Garment product={day} view="back" priority decorative sizes="(max-width: 900px) 90vw, 46vw" />
           </div>

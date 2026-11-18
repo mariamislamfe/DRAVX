@@ -19,11 +19,12 @@
   inset: 0;
   overflow: hidden;
 }
+/* backgrounds are set inline from each hoodie's colour (Hero.tsx) */
 .night {
-  background: radial-gradient(60% 65% at 60% 55%, #16204a 0%, #0b0d18 50%, var(--ink) 100%);
+  background: var(--ink);
 }
 .day {
-  background: radial-gradient(70% 70% at 40% 55%, #f4f1ea 0%, var(--paper) 60%);
+  background: var(--paper);
   clip-path: inset(0 calc(100% - var(--split)) 0 0);
 }
 .beam {

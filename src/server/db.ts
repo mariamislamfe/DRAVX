@@ -111,6 +111,12 @@ const SEED_COLORS = [
 /** Bring stores created by older versions up to date. Returns true if changed. */
 function upgrade(db: DB): boolean {
   let changed = false;
+  const once = (id: string, fn: () => void) => {
+    if (db.migrations?.includes(id)) return;
+    fn();
+    (db.migrations ??= []).push(id);
+    changed = true;
+  };
   if (!db.notifications) {
     db.notifications = [];
     changed = true;
@@ -138,6 +144,10 @@ function upgrade(db: DB): boolean {
     db.settings.brand = { ...DEFAULT_BRAND, ...db.settings.brand };
     changed = true;
   }
+  // the store sells in Egypt: move off the old USD default (once; Settings can change it after)
+  once("currency-egp", () => {
+    if (db.settings.brand && db.settings.brand.currency === "USD") db.settings.brand.currency = "EGP";
+  });
   // hoodies shipped with a hard-coded size guide; make it editable
   const hoodies = db.categories.find((c) => c.id === "hoodies");
   if (hoodies && !hoodies.sizeChart) {
