@@ -75,6 +75,14 @@
   color: var(--muted);
   font-size: 0.68rem;
 }
+.credit {
+  color: var(--paper);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.credit:hover {
+  color: var(--blue-hi);
+}
 
 @media (max-width: 900px) {
   .top {

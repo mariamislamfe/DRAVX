@@ -206,7 +206,7 @@ export const DEFAULT_BRAND: BrandInfo = {
   tagline: "Turn your back on them.",
   description: "DRAVX makes oversized hoodies with a quiet front and a loud back. Two worlds, one hood: DAYDREAM and NIGHTSHIFT.",
   siteUrl: "https://dravx.example",
-  currency: "USD",
+  currency: "EGP",
   email: "",
   phone: "",
   whatsapp: "",

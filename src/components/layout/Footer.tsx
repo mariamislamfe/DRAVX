@@ -116,7 +116,13 @@ export function Footer() {
 
       <div className={`${styles.bottom} wrap mono`}>
         <span>
-          © {new Date().getFullYear()} {brand.name}
+          © {new Date().getFullYear()} {brand.name} ·{" "}
+          <span dir="ltr">
+            Made by{" "}
+            <a href="https://www.instagram.com/websity.eg/" target="_blank" rel="noopener noreferrer" className={styles.credit}>
+              Websity
+            </a>
+          </span>
         </span>
         <span>{brand.tagline || "Front: quiet. Back: loud."}</span>
         <span>Cash on delivery</span>
