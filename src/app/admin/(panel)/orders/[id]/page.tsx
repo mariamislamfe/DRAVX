@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { readDB } from "@/server/db";
 import { deleteOrder, updateOrder } from "@/server/admin";
 import { formatPrice } from "@/config/brand";
-import { ORDER_STATUSES, STATUS_LABEL, type CustomDesign, type OrderItem } from "@/data/schema";
+import { ORDER_STATUSES, PAYMENT_LABEL, STATUS_LABEL, type CustomDesign, type OrderItem } from "@/data/schema";
 import { StatusPill, fmtDate } from "@/components/admin/bits";
 import { ConfirmButton, PrintButton } from "@/components/admin/ClientBits";
 import styles from "@/components/admin/Admin.module.css";
@@ -91,10 +91,18 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             <dl className={styles.kv}>
               <dt>Subtotal</dt>
               <dd className={styles.num}>{formatPrice(o.subtotal)}</dd>
+              {o.discount && (
+                <>
+                  <dt>Discount · {o.discount.code}</dt>
+                  <dd className={styles.num}>{o.discount.amount ? `−${formatPrice(o.discount.amount)}` : "Free shipping"}</dd>
+                </>
+              )}
               <dt>Shipping</dt>
               <dd className={styles.num}>{o.shipping ? formatPrice(o.shipping) : "Free"}</dd>
+              <dt>Payment</dt>
+              <dd className={styles.num}>{PAYMENT_LABEL[o.payment ?? "cod"]}</dd>
               <dt>
-                <strong>Collect on delivery</strong>
+                <strong>{(o.payment ?? "cod") === "cod" ? "Collect on delivery" : "Total (check the transfer)"}</strong>
               </dt>
               <dd className={styles.num}>
                 <strong>{formatPrice(o.total)}</strong>

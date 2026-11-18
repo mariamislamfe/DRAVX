@@ -6,6 +6,7 @@ import styles from "./Cart.module.css";
 
 export function ShippingMeter({ subtotal }: { subtotal: number }) {
   const threshold = useCatalog().settings.freeShippingThreshold;
+  if (threshold <= 0) return null; // free shipping is switched off
   const remaining = Math.max(0, threshold - subtotal);
   const pct = threshold > 0 ? Math.min(100, (subtotal / threshold) * 100) : 100;
   return (

@@ -173,7 +173,11 @@ export type Order = {
   subtotal: number;
   shipping: number;
   total: number;
-  payment: "cod";
+  payment: PaymentMethod;
+  /** Discount code used at checkout. `amount` is already taken off `total`. */
+  discount?: { code: string; amount: number };
+  /** Tracked stock was put back when the order was cancelled. */
+  restocked?: boolean;
   adminNote?: string;
   history: { at: string; status: OrderStatus }[];
 };
@@ -213,11 +217,83 @@ export const DEFAULT_BRAND: BrandInfo = {
   returnsInfo: "",
 };
 
+/* ------------------------------------------------------------------ */
+/* Shipping, payments, discounts, integrations                         */
+/* ------------------------------------------------------------------ */
+
+/** A delivery area with its own fee (e.g. a governorate). */
+export type ShippingZone = { id: string; name: string; fee: number; days?: string };
+
+export const PAYMENT_METHODS = ["cod", "instapay", "wallet"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
+  cod: "Cash on delivery",
+  instapay: "InstaPay / bank transfer",
+  wallet: "Mobile wallet",
+};
+/** Public: shown at checkout. `details` is what the customer needs to pay (account, number…). */
+export type PaymentOption = { enabled: boolean; details: string };
+export type PaymentSettings = Record<PaymentMethod, PaymentOption>;
+export const DEFAULT_PAYMENTS: PaymentSettings = {
+  cod: { enabled: true, details: "" },
+  instapay: { enabled: false, details: "" },
+  wallet: { enabled: false, details: "" },
+};
+
 export type Settings = {
+  /** Fee when no zones are set, or for zones without their own fee. */
   shippingFee: number;
   freeShippingThreshold: number;
+  /** When set, checkout asks the customer to pick one and charges its fee. */
+  shippingZones: ShippingZone[];
+  payments: PaymentSettings;
   customizerEnabled: boolean;
   brand: BrandInfo;
+};
+
+export function shippingFor(s: Pick<Settings, "shippingFee" | "freeShippingThreshold" | "shippingZones">, subtotal: number, zoneId?: string) {
+  if (subtotal <= 0) return 0;
+  if (s.freeShippingThreshold > 0 && subtotal >= s.freeShippingThreshold) return 0;
+  const zone = s.shippingZones?.find((z) => z.id === zoneId);
+  return zone ? zone.fee : s.shippingFee;
+}
+
+/** Server-only. Never part of the public catalog. */
+export type Discount = {
+  code: string; // upper-case, unique
+  type: "percent" | "fixed" | "free_shipping";
+  value: number;
+  minSubtotal: number;
+  /** 0 = unlimited */
+  maxUses: number;
+  uses: number;
+  /** ISO date (inclusive) or empty */
+  expiresAt?: string;
+  active: boolean;
+  createdAt: string;
+};
+
+/** What a discount takes off an order. */
+export function discountAmount(d: Discount, subtotal: number, shipping: number): number {
+  if (d.type === "percent") return Math.round(subtotal * Math.min(100, d.value)) / 100;
+  if (d.type === "fixed") return Math.min(subtotal, d.value);
+  return shipping;
+}
+
+/** Why a code can't be used right now, or null if it can. */
+export function discountProblem(d: Discount | undefined, subtotal: number, now = new Date()): string | null {
+  if (!d || !d.active) return "That code isn't valid.";
+  if (d.expiresAt && now.toISOString().slice(0, 10) > d.expiresAt) return "That code has expired.";
+  if (d.maxUses > 0 && d.uses >= d.maxUses) return "That code has been fully used.";
+  if (subtotal < d.minSubtotal) return "MIN";
+  return null;
+}
+
+/** Saved credentials for a shipping company or payment gateway. Server-only. */
+export type IntegrationState = {
+  enabled: boolean;
+  fields: Record<string, string>;
+  updatedAt: string;
 };
 
 /** Dashboard notification (new orders and the like). */
@@ -240,6 +316,8 @@ export type DB = {
   templates: CustomTemplate[];
   orders: Order[];
   notifications: Notice[];
+  discounts: Discount[];
+  integrations: Record<string, IntegrationState>;
 };
 
 /** What the storefront receives. */

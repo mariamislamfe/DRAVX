@@ -41,7 +41,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
         {list.length === 0 ? (
           <p className={styles.empty}>No products here yet.</p>
         ) : (
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.cards}`}>
             <thead>
               <tr>
                 <th />
@@ -60,7 +60,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                 const out = p.soldOut.length;
                 return (
                   <tr key={p.slug}>
-                    <td style={{ width: 64 }}>
+                    <td className={styles.thumbCell}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       {img.cutout || img.src ? <img src={img.cutout ?? img.src} alt="" className={styles.thumb} /> : <span className={styles.thumb} />}
                     </td>
@@ -70,9 +70,9 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                       </Link>
                       <div className={styles.muted}>/{p.slug}</div>
                     </td>
-                    <td>{catName(p.categoryId)}</td>
-                    <td>{formatPrice(p.price)}</td>
-                    <td>
+                    <td data-label="Category">{catName(p.categoryId)}</td>
+                    <td data-label="Price">{formatPrice(p.price)}</td>
+                    <td data-label="Stock">
                       {out === 0 ? (
                         <span className={styles.muted}>All sizes</span>
                       ) : out >= p.sizes.length ? (
@@ -83,13 +83,13 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                         <span className={styles.muted}>{p.soldOut.join(", ")} out</span>
                       )}
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <span className={styles.pill} data-s={p.active ? "delivered" : "off"}>
                         {p.active ? "Live" : "Hidden"}
                       </span>
                     </td>
-                    <td>
-                      <div className={styles.actions} style={{ justifyContent: "flex-end" }}>
+                    <td className={styles.full}>
+                      <div className={`${styles.actions} ${styles.rowActions}`}>
                         <form action={toggle}>
                           <button type="submit" className={`${styles.btnGhost} ${styles.btnSm}`}>
                             {p.active ? "Hide" : "Publish"}

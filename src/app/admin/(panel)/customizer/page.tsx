@@ -31,7 +31,7 @@ export default async function CustomizerAdmin() {
         {list.length === 0 ? (
           <p className={styles.empty}>No bases yet.</p>
         ) : (
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.cards}`}>
             <thead>
               <tr>
                 <th />
@@ -48,7 +48,7 @@ export default async function CustomizerAdmin() {
                 const sides = t.views.filter((v) => v.enabled);
                 return (
                   <tr key={t.id}>
-                    <td style={{ width: 64 }}>
+                    <td className={styles.thumbCell}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       {sides[0] && <img src={sides[0].mockup} alt="" className={styles.thumb} />}
                     </td>
@@ -57,20 +57,20 @@ export default async function CustomizerAdmin() {
                         {t.name}
                       </Link>
                     </td>
-                    <td>{catName(t.categoryId)}</td>
-                    <td>
+                    <td data-label="Category">{catName(t.categoryId)}</td>
+                    <td data-label="Price">
                       {formatPrice(t.basePrice)}
                       <div className={styles.muted}>
                         {sides.map((v) => `+${formatPrice(v.printPrice)} ${v.side}`).join(" · ")}
                       </div>
                     </td>
-                    <td>{sides.map((v) => `${v.side} ${v.printWidthCm}cm`).join(", ")}</td>
-                    <td>
+                    <td data-label="Sides">{sides.map((v) => `${v.side} ${v.printWidthCm}cm`).join(", ")}</td>
+                    <td data-label="Colours">
                       {t.colors.map((c) => (
                         <span key={c.id} className={styles.swatch} style={{ background: c.hex }} title={c.name} />
                       ))}
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <span className={styles.pill} data-s={t.active ? "delivered" : "off"}>
                         {t.active ? "Live" : "Hidden"}
                       </span>

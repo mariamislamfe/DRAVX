@@ -15,7 +15,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { SEED_PRODUCTS } from "@/data/products";
-import { DEFAULT_BRAND, DEFAULT_SIZE_CHART, type Catalog, type CustomTemplate, type DB } from "@/data/schema";
+import { DEFAULT_BRAND, DEFAULT_PAYMENTS, DEFAULT_SIZE_CHART, type Catalog, type CustomTemplate, type DB } from "@/data/schema";
 import { setCurrency } from "@/config/brand";
 import { neonCreate, neonRead, neonWrite, neonEnabled } from "./neon";
 
@@ -27,7 +27,14 @@ function seed(): DB {
   return {
     version: 1,
     seq: 1000,
-    settings: { shippingFee: 10, freeShippingThreshold: 150, customizerEnabled: true, brand: { ...DEFAULT_BRAND } },
+    settings: {
+      shippingFee: 10,
+      freeShippingThreshold: 150,
+      shippingZones: [],
+      payments: structuredClone(DEFAULT_PAYMENTS),
+      customizerEnabled: true,
+      brand: { ...DEFAULT_BRAND },
+    },
     categories: [
       {
         id: "hoodies",
@@ -42,6 +49,8 @@ function seed(): DB {
     templates: [seedTemplate()],
     orders: [],
     notifications: [],
+    discounts: [],
+    integrations: {},
   };
 }
 
@@ -104,6 +113,22 @@ function upgrade(db: DB): boolean {
   let changed = false;
   if (!db.notifications) {
     db.notifications = [];
+    changed = true;
+  }
+  if (!db.discounts) {
+    db.discounts = [];
+    changed = true;
+  }
+  if (!db.integrations) {
+    db.integrations = {};
+    changed = true;
+  }
+  if (!db.settings.shippingZones) {
+    db.settings.shippingZones = [];
+    changed = true;
+  }
+  if (!db.settings.payments) {
+    db.settings.payments = structuredClone(DEFAULT_PAYMENTS);
     changed = true;
   }
   if (!db.settings.brand) {

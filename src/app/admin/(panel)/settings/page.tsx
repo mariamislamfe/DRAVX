@@ -11,7 +11,7 @@ export default async function SettingsPage() {
       <header className={styles.head}>
         <div>
           <h1>Settings</h1>
-          <p>Brand, contact, shipping and store switches</p>
+          <p>Brand, contact and store switches</p>
         </div>
       </header>
       <SettingsForm settings={db.settings} />

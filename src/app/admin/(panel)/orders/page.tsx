@@ -33,7 +33,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
       <header className={styles.head}>
         <div>
           <h1>Orders</h1>
-          <p>{db.orders.length} total · cash on delivery</p>
+          <p>{db.orders.length} total</p>
         </div>
       </header>
 
@@ -49,26 +49,26 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         <Link href={href({ type: customOnly ? undefined : "custom" })} aria-current={customOnly ? "page" : undefined}>
           Custom only
         </Link>
-        <form>
-          {status && <input type="hidden" name="status" value={status} />}
-          {customOnly && <input type="hidden" name="type" value="custom" />}
-          <input type="search" name="q" defaultValue={sp.q} placeholder="Search name, phone, order #" aria-label="Search orders" />
-        </form>
       </div>
+      <form className={styles.search} role="search">
+        {status && <input type="hidden" name="status" value={status} />}
+        {customOnly && <input type="hidden" name="type" value="custom" />}
+        <input type="search" name="q" defaultValue={sp.q} placeholder="Search name, phone, order #" aria-label="Search orders" />
+      </form>
 
       <div className={styles.tableWrap}>
         {list.length === 0 ? (
           <p className={styles.empty}>No orders match.</p>
         ) : (
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.cards}`}>
             <thead>
               <tr>
                 <th>Order</th>
-                <th>Date</th>
+                <th>Status</th>
                 <th>Customer</th>
                 <th>City</th>
+                <th>Date</th>
                 <th>Items</th>
-                <th>Status</th>
                 <th className={styles.num}>Total</th>
               </tr>
             </thead>
@@ -81,18 +81,22 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
                     </Link>{" "}
                     {o.items.some((i) => i.kind === "custom") && <CustomPill />}
                   </td>
-                  <td className={styles.muted}>{fmtDate(o.createdAt)}</td>
-                  <td>
+                  <td className={styles.statusCell}>
+                    <StatusPill status={o.status} />
+                  </td>
+                  <td data-label="Customer">
                     {o.customer.name}
                     <br />
                     <span className={styles.muted}>{o.customer.phone}</span>
                   </td>
-                  <td>{o.customer.city}</td>
-                  <td>{o.items.reduce((n, i) => n + i.qty, 0)}</td>
-                  <td>
-                    <StatusPill status={o.status} />
+                  <td data-label="City">{o.customer.city}</td>
+                  <td className={styles.muted} data-label="Date">
+                    {fmtDate(o.createdAt)}
                   </td>
-                  <td className={styles.num}>{formatPrice(o.total)}</td>
+                  <td data-label="Items">{o.items.reduce((n, i) => n + i.qty, 0)}</td>
+                  <td className={`${styles.num} ${styles.cardTotal}`} data-label="Total">
+                    <strong>{formatPrice(o.total)}</strong>
+                  </td>
                 </tr>
               ))}
             </tbody>

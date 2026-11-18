@@ -18,7 +18,7 @@ export default async function Overview() {
     <>
       <header className={styles.head}>
         <div>
-          <h1>Overview</h1>
+          <h1>Dashboard</h1>
           <p>Store at a glance</p>
         </div>
         <div className={styles.actions}>
@@ -61,14 +61,14 @@ export default async function Overview() {
         {recent.length === 0 ? (
           <p className={styles.empty}>No orders yet. They appear here as soon as someone checks out.</p>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table className={styles.table}>
+          <div className={styles.tableFlat}>
+            <table className={`${styles.table} ${styles.cards}`}>
               <thead>
                 <tr>
                   <th>Order</th>
-                  <th>Date</th>
-                  <th>Customer</th>
                   <th>Status</th>
+                  <th>Customer</th>
+                  <th>Date</th>
                   <th className={styles.num}>Total</th>
                 </tr>
               </thead>
@@ -81,12 +81,16 @@ export default async function Overview() {
                       </Link>{" "}
                       {o.items.some((i) => i.kind === "custom") && <CustomPill />}
                     </td>
-                    <td className={styles.muted}>{fmtDate(o.createdAt)}</td>
-                    <td>{o.customer.name}</td>
-                    <td>
+                    <td className={styles.statusCell}>
                       <StatusPill status={o.status} />
                     </td>
-                    <td className={styles.num}>{formatPrice(o.total)}</td>
+                    <td data-label="Customer">{o.customer.name}</td>
+                    <td className={styles.muted} data-label="Date">
+                      {fmtDate(o.createdAt)}
+                    </td>
+                    <td className={`${styles.num} ${styles.cardTotal}`} data-label="Total">
+                      {formatPrice(o.total)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

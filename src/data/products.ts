@@ -49,6 +49,8 @@ export type Product = {
   fit: string;
   sizes: Size[];
   soldOut: Size[];
+  /** Units in stock per size. A size left out isn't tracked (never runs out on its own). */
+  stock?: Partial<Record<Size, number>>;
   printVariants?: PrintVariant[];
   images: ProductImage[];
   badge?: string;

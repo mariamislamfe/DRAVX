@@ -24,11 +24,6 @@ const CONTACT: Field[] = [
   { key: "facebook", label: "Facebook", placeholder: "page name or full link" },
 ];
 
-const POLICIES: Field[] = [
-  { key: "shippingInfo", label: "Shipping", hint: "Shown on every product page under “Shipping & returns”.", long: true },
-  { key: "returnsInfo", label: "Returns & exchanges", placeholder: "e.g. Exchanges within 14 days, unworn with tags.", long: true },
-];
-
 export function SettingsForm({ settings: s }: { settings: Settings }) {
   const [state, action, pending] = useActionState(saveSettings, {});
 
@@ -45,7 +40,7 @@ export function SettingsForm({ settings: s }: { settings: Settings }) {
   );
 
   return (
-    <form action={action} className={styles.stack} style={{ maxWidth: 760 }}>
+    <form action={action} className={`${styles.stack} ${styles.narrow}`}>
       <section className={styles.card}>
         <h2>Brand</h2>
         <div className={styles.stack}>{IDENTITY.map(field)}</div>
@@ -60,25 +55,14 @@ export function SettingsForm({ settings: s }: { settings: Settings }) {
       </section>
 
       <section className={styles.card}>
-        <h2>Shipping & orders</h2>
-        <div className={styles.stack}>
-          <div className={styles.grid2}>
-            <label className={styles.field}>
-              <span>Shipping fee</span>
-              <input type="number" name="shippingFee" min={0} step="0.01" defaultValue={s.shippingFee} />
-            </label>
-            <label className={styles.field}>
-              <span>Free shipping from</span>
-              <input type="number" name="freeShippingThreshold" min={0} step="0.01" defaultValue={s.freeShippingThreshold} />
-              <small>Order subtotal at which shipping becomes free</small>
-            </label>
-          </div>
-          {POLICIES.map(field)}
-          <label className={styles.check}>
-            <input type="checkbox" name="customizerEnabled" defaultChecked={s.customizerEnabled} />
-            Customizer open to customers (/customize)
-          </label>
-        </div>
+        <h2>Store features</h2>
+        <label className={styles.check}>
+          <input type="checkbox" name="customizerEnabled" defaultChecked={s.customizerEnabled} />
+          Customizer open to customers (/customize)
+        </label>
+        <p className={styles.muted} style={{ marginTop: 10, fontSize: "0.85rem" }}>
+          Shipping fees and policies are under Shipping; payment methods under Payments.
+        </p>
       </section>
 
       <div className={styles.saveBar}>

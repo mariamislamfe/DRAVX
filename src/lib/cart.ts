@@ -1,5 +1,5 @@
 import type { Product } from "@/data/products";
-import { templatePrice, type Catalog } from "@/data/schema";
+import { shippingFor, templatePrice, type Catalog } from "@/data/schema";
 import type { CartLine } from "./store";
 
 export type ResolvedLine = CartLine & {
@@ -49,11 +49,11 @@ export function resolveLines(lines: CartLine[], catalog: Catalog): ResolvedLine[
   });
 }
 
-export function cartTotals(lines: CartLine[], catalog: Catalog) {
+/** `zoneId`: the delivery area picked at checkout, when the store has zones. */
+export function cartTotals(lines: CartLine[], catalog: Catalog, zoneId?: string) {
   const resolved = resolveLines(lines, catalog);
   const subtotal = resolved.reduce((s, l) => s + l.lineTotal, 0);
   const count = resolved.reduce((s, l) => s + l.qty, 0);
-  const { shippingFee, freeShippingThreshold } = catalog.settings;
-  const shipping = subtotal === 0 || subtotal >= freeShippingThreshold ? 0 : shippingFee;
+  const shipping = shippingFor(catalog.settings, subtotal, zoneId);
   return { resolved, subtotal, count, shipping, total: subtotal + shipping };
 }

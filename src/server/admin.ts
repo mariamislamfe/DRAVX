@@ -8,15 +8,21 @@ import { SIZES, WORLD_IDS, type ImageKind, type Product, type Size } from "@/dat
 import {
   DEFAULT_BRAND,
   ORDER_STATUSES,
+  PAYMENT_METHODS,
   slugify,
   type BrandInfo,
   type Category,
   type CustomTemplate,
+  type DB,
+  type Discount,
+  type Order,
   type OrderStatus,
-  type Settings,
+  type PaymentSettings,
+  type ShippingZone,
   type Side,
   type SizeChart,
 } from "@/data/schema";
+import { INTEGRATIONS } from "@/data/integrations";
 
 export type ActionResult = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -288,6 +294,14 @@ export async function updateOrder(id: string, form: FormData) {
     if (!o) return;
     const now = new Date().toISOString();
     if (ORDER_STATUSES.includes(status) && status !== o.status) {
+      // cancelling puts tracked stock back; un-cancelling takes it again
+      if (status === "cancelled" && !o.restocked) {
+        moveStock(db, o, +1);
+        o.restocked = true;
+      } else if (o.status === "cancelled" && o.restocked) {
+        moveStock(db, o, -1);
+        o.restocked = false;
+      }
       o.status = status;
       o.history.push({ at: now, status });
     }
@@ -325,32 +339,203 @@ export async function saveSettings(_: unknown, form: FormData): Promise<{ saved?
   const email = b("email", 120);
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "That email address doesn't look right." };
 
-  const brand: BrandInfo = {
-    name: b("name", 60) || DEFAULT_BRAND.name,
-    tagline: b("tagline", 120),
-    description: b("description", 400),
-    siteUrl: siteUrl || DEFAULT_BRAND.siteUrl,
-    currency,
-    email,
-    phone: b("phone", 40),
-    whatsapp: b("whatsapp", 40),
-    instagram: b("instagram"),
-    tiktok: b("tiktok"),
-    facebook: b("facebook"),
-    shippingInfo: b("shippingInfo", 1500),
-    returnsInfo: b("returnsInfo", 1500),
-  };
-  const s: Settings = {
-    shippingFee: num(form.get("shippingFee"), 0, 1e5),
-    freeShippingThreshold: num(form.get("freeShippingThreshold"), 0, 1e7),
-    customizerEnabled: form.get("customizerEnabled") === "on",
-    brand,
-  };
   await mutate((db) => {
-    db.settings = s;
+    // shipping & returns text is edited on the Shipping page
+    const { shippingInfo, returnsInfo } = db.settings.brand;
+    db.settings.brand = {
+      name: b("name", 60) || DEFAULT_BRAND.name,
+      tagline: b("tagline", 120),
+      description: b("description", 400),
+      siteUrl: siteUrl || DEFAULT_BRAND.siteUrl,
+      currency,
+      email,
+      phone: b("phone", 40),
+      whatsapp: b("whatsapp", 40),
+      instagram: b("instagram"),
+      tiktok: b("tiktok"),
+      facebook: b("facebook"),
+      shippingInfo,
+      returnsInfo,
+    };
+    db.settings.customizerEnabled = form.get("customizerEnabled") === "on";
   });
   refresh();
   return { saved: true };
+}
+
+/* ------------------------------------------------------------------ */
+/* Shipping                                                            */
+/* ------------------------------------------------------------------ */
+
+export async function saveShipping(_: unknown, form: FormData): Promise<{ saved?: boolean; error?: string }> {
+  await requireAdmin();
+  let raw: unknown;
+  try {
+    raw = JSON.parse(String(form.get("zones") ?? "[]"));
+  } catch {
+    return { error: "Couldn't read the zones. Reload and try again." };
+  }
+  const zones: ShippingZone[] = [];
+  for (const z of Array.isArray(raw) ? raw.slice(0, 60) : []) {
+    const name = str(z?.name, 60);
+    if (!name) continue;
+    let id = slugify(name) || `zone-${zones.length + 1}`;
+    while (zones.some((x) => x.id === id)) id += "-2";
+    zones.push({ id, name, fee: num(z?.fee, 0, 1e5), days: str(z?.days, 30) || undefined });
+  }
+  await mutate((db) => {
+    db.settings.shippingFee = num(form.get("shippingFee"), 0, 1e5);
+    db.settings.freeShippingThreshold = num(form.get("freeShippingThreshold"), 0, 1e7);
+    db.settings.shippingZones = zones;
+    db.settings.brand.shippingInfo = str(form.get("shippingInfo"), 1500);
+    db.settings.brand.returnsInfo = str(form.get("returnsInfo"), 1500);
+  });
+  refresh();
+  return { saved: true };
+}
+
+/* ------------------------------------------------------------------ */
+/* Payments                                                            */
+/* ------------------------------------------------------------------ */
+
+export async function savePayments(_: unknown, form: FormData): Promise<{ saved?: boolean; error?: string }> {
+  await requireAdmin();
+  const p = Object.fromEntries(
+    PAYMENT_METHODS.map((m) => [m, { enabled: form.get(`${m}.enabled`) === "on", details: str(form.get(`${m}.details`), 600) }])
+  ) as PaymentSettings;
+  if (!PAYMENT_METHODS.some((m) => p[m].enabled)) return { error: "Keep at least one payment method on." };
+  for (const m of ["instapay", "wallet"] as const) {
+    if (p[m].enabled && !p[m].details) return { error: "Add the account or number customers should pay to." };
+  }
+  await mutate((db) => {
+    db.settings.payments = p;
+  });
+  refresh();
+  return { saved: true };
+}
+
+/* ------------------------------------------------------------------ */
+/* Discounts                                                           */
+/* ------------------------------------------------------------------ */
+
+export async function saveDiscount(_: unknown, form: FormData): Promise<{ saved?: boolean; error?: string }> {
+  await requireAdmin();
+  const code = str(form.get("code"), 30).toUpperCase().replace(/\s+/g, "");
+  if (!/^[A-Z0-9_-]{3,30}$/.test(code)) return { error: "Code: 3–30 letters or numbers, no spaces." };
+  const type = String(form.get("type"));
+  if (type !== "percent" && type !== "fixed" && type !== "free_shipping") return { error: "Pick a discount type." };
+  const value = type === "free_shipping" ? 0 : num(form.get("value"), 0, type === "percent" ? 100 : 1e6);
+  if (type !== "free_shipping" && value <= 0) return { error: "Enter how much the code takes off." };
+  const expires = str(form.get("expiresAt"), 10);
+  const original = str(form.get("originalCode"), 30);
+  const res = await mutate((db): { saved?: boolean; error?: string } => {
+    const existing = original ? db.discounts.find((d) => d.code === original) : undefined;
+    if (db.discounts.some((d) => d.code === code && d !== existing)) return { error: `${code} already exists.` };
+    const next: Discount = {
+      code,
+      type,
+      value,
+      minSubtotal: num(form.get("minSubtotal"), 0, 1e7),
+      maxUses: Math.round(num(form.get("maxUses"), 0, 1e7)),
+      uses: existing?.uses ?? 0,
+      expiresAt: /^\d{4}-\d{2}-\d{2}$/.test(expires) ? expires : undefined,
+      active: form.get("active") === "on",
+      createdAt: existing?.createdAt ?? new Date().toISOString(),
+    };
+    if (existing) Object.assign(existing, next);
+    else db.discounts.unshift(next);
+    return { saved: true };
+  });
+  revalidatePath("/admin", "layout");
+  return res;
+}
+
+export async function setDiscountActive(code: string, active: boolean) {
+  await requireAdmin();
+  await mutate((db) => {
+    const d = db.discounts.find((x) => x.code === code);
+    if (d) d.active = active;
+  });
+  revalidatePath("/admin", "layout");
+}
+
+export async function deleteDiscount(code: string) {
+  await requireAdmin();
+  await mutate((db) => {
+    db.discounts = db.discounts.filter((d) => d.code !== code);
+  });
+  revalidatePath("/admin", "layout");
+}
+
+/* ------------------------------------------------------------------ */
+/* Inventory                                                           */
+/* ------------------------------------------------------------------ */
+
+/** rows: slug → size → units (null = don't track this size). */
+export async function saveInventory(rows: Record<string, Record<string, number | null>>): Promise<ActionResult> {
+  await requireAdmin();
+  await mutate((db) => {
+    for (const p of db.products) {
+      const row = rows?.[p.slug];
+      if (!row || typeof row !== "object") continue;
+      const stock: Partial<Record<Size, number>> = {};
+      for (const sz of p.sizes) {
+        const v = row[sz];
+        if (v === null || v === undefined || !Number.isFinite(Number(v))) continue;
+        stock[sz] = Math.round(num(v, 0, 1e6));
+      }
+      p.stock = Object.keys(stock).length ? stock : undefined;
+      // tracked sizes sell out at 0 and come back when restocked
+      p.soldOut = p.sizes.filter((sz) => (sz in stock ? stock[sz]! <= 0 : p.soldOut.includes(sz)));
+    }
+  });
+  refresh();
+  return { ok: true };
+}
+
+/** Add (+1) or take (-1) an order's items back into tracked stock. */
+function moveStock(db: DB, o: Order, dir: 1 | -1) {
+  for (const it of o.items) {
+    const p = it.slug ? db.products.find((x) => x.slug === it.slug) : undefined;
+    if (!p?.stock || !(it.size in p.stock)) continue;
+    const left = Math.max(0, (p.stock[it.size] ?? 0) + dir * it.qty);
+    p.stock[it.size] = left;
+    p.soldOut = left > 0 ? p.soldOut.filter((s) => s !== it.size) : [...new Set([...p.soldOut, it.size])];
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Integrations                                                        */
+/* ------------------------------------------------------------------ */
+
+export async function saveIntegration(id: string, _: unknown, form: FormData): Promise<{ saved?: boolean; error?: string }> {
+  await requireAdmin();
+  const provider = INTEGRATIONS.find((p) => p.id === id);
+  if (!provider) return { error: "Unknown integration." };
+  const res = await mutate((db): { saved?: boolean; error?: string } => {
+    const prev = db.integrations[id]?.fields ?? {};
+    const fields: Record<string, string> = {};
+    for (const f of provider.fields) {
+      const v = str(form.get(f.key), 2000);
+      // secret inputs are left empty to keep the saved value
+      fields[f.key] = f.secret && !v ? prev[f.key] ?? "" : v;
+    }
+    const enabled = form.get("enabled") === "on";
+    const missing = provider.fields.find((f) => f.key !== "mode" && !fields[f.key]);
+    if (enabled && missing) return { error: `${missing.label} is needed to switch ${provider.name} on.` };
+    db.integrations[id] = { enabled, fields, updatedAt: new Date().toISOString() };
+    return { saved: true };
+  });
+  revalidatePath("/admin", "layout");
+  return res;
+}
+
+export async function disconnectIntegration(id: string) {
+  await requireAdmin();
+  await mutate((db) => {
+    delete db.integrations[id];
+  });
+  revalidatePath("/admin", "layout");
 }
 
 /* ------------------------------------------------------------------ */

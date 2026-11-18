@@ -2,8 +2,9 @@ import Link from "next/link";
 import { requireAdmin } from "@/server/auth";
 import { readDB } from "@/server/db";
 import { logout } from "@/server/admin";
-import { AdminNav } from "@/components/admin/AdminNav";
+import { AdminShell } from "@/components/admin/AdminNav";
 import { NoticeWatcher } from "@/components/admin/NoticeWatcher";
+import { Icon } from "@/components/admin/icons";
 import styles from "@/components/admin/Admin.module.css";
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
@@ -13,25 +14,27 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   const notices = db.notifications ?? [];
   const unread = notices.filter((n) => !n.read).length;
   return (
-    <div className={styles.shell}>
-      <aside className={styles.side}>
-        <Link href="/admin" className={styles.brand}>
-          DRAVX <small>admin</small>
-        </Link>
-        <AdminNav newOrders={newOrders} unread={unread} />
-        <NoticeWatcher initialLatest={notices[0]?.at} />
-        <div className={styles.sideFoot}>
-          <Link href="/" target="_blank">
-            View store ↗
+    <AdminShell
+      brand={db.settings.brand.name}
+      newOrders={newOrders}
+      unread={unread}
+      footer={
+        <>
+          <NoticeWatcher initialLatest={notices[0]?.at} />
+          <Link href="/" target="_blank" className={styles.footLink}>
+            <Icon name="external" size={18} />
+            View store
           </Link>
           <form action={logout}>
-            <button type="submit">Sign out</button>
+            <button type="submit" className={styles.footLink}>
+              <Icon name="logout" size={18} />
+              Sign out
+            </button>
           </form>
-        </div>
-      </aside>
-      <div className={styles.main}>
-        {children}
-      </div>
-    </div>
+        </>
+      }
+    >
+      {children}
+    </AdminShell>
   );
 }

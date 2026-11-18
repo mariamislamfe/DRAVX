@@ -3,7 +3,19 @@
 import { randomUUID } from "node:crypto";
 import { mutate } from "./db";
 import { isUploadUrl, uploadExists } from "./uploads";
-import { templatePrice, type CustomDesign, type Customer, type Order, type OrderItem } from "@/data/schema";
+import {
+  PAYMENT_METHODS,
+  discountAmount,
+  discountProblem,
+  shippingFor,
+  templatePrice,
+  type CustomDesign,
+  type Customer,
+  type Order,
+  type OrderItem,
+  type PaymentMethod,
+} from "@/data/schema";
+import { readDB } from "./db";
 import { getImage, type Size } from "@/data/products";
 import type { CartLine } from "@/lib/store";
 import { formatPrice, setCurrency } from "@/config/brand";
@@ -34,7 +46,30 @@ function cleanCustomer(c: Partial<Customer>): Customer | string {
  * Creates a cash-on-delivery order. Everything the browser sends is
  * re-checked here: prices come from the catalog, never from the cart.
  */
-export async function placeOrder(input: { customer: Partial<Customer>; lines: CartLine[] }): Promise<PlaceOrderResult> {
+export type DiscountCheck = { ok: true; code: string; amount: number; freeShipping: boolean; label: string } | { ok: false; error: string };
+
+/** Lets checkout preview a code. The order total is recomputed in placeOrder. */
+export async function checkDiscount(code: string, subtotal: number, shipping: number): Promise<DiscountCheck> {
+  const c = str(code, 30).toUpperCase();
+  if (!c) return { ok: false, error: "Enter a code." };
+  const db = await readDB();
+  setCurrency(db.settings.brand?.currency);
+  const d = db.discounts.find((x) => x.code === c);
+  const sub = Number(subtotal) || 0;
+  const problem = discountProblem(d, sub);
+  if (problem === "MIN") return { ok: false, error: `Spend ${formatPrice(d!.minSubtotal)} or more to use this code.` };
+  if (problem || !d) return { ok: false, error: problem ?? "That code isn't valid." };
+  const label = d.type === "percent" ? `${d.value}% off` : d.type === "fixed" ? `${formatPrice(d.value)} off` : "Free shipping";
+  return { ok: true, code: d.code, amount: discountAmount(d, sub, Number(shipping) || 0), freeShipping: d.type === "free_shipping", label };
+}
+
+export async function placeOrder(input: {
+  customer: Partial<Customer>;
+  lines: CartLine[];
+  zoneId?: string;
+  payment?: PaymentMethod;
+  discountCode?: string;
+}): Promise<PlaceOrderResult> {
   const customer = cleanCustomer(input?.customer ?? {});
   if (typeof customer === "string") return { ok: false, error: customer };
   const lines = Array.isArray(input?.lines) ? input.lines.slice(0, MAX_LINES) : [];
@@ -108,6 +143,11 @@ export async function placeOrder(input: { customer: Partial<Customer>; lines: Ca
         const p = db.products.find((x) => x.slug === l.slug && x.active);
         if (!p) return { ok: false, error: "An item in your bag is no longer available." };
         if (!p.sizes.includes(l.size) || p.soldOut.includes(l.size as Size)) return { ok: false, error: `${p.name} in ${l.size} just sold out.` };
+        const tracked = p.stock?.[l.size as Size];
+        if (tracked !== undefined) {
+          const wanted = qty + items.filter((i) => i.slug === p.slug && i.size === l.size).reduce((n, i) => n + i.qty, 0);
+          if (wanted > tracked) return { ok: false, error: `Only ${tracked} left of ${p.name} in ${l.size}.` };
+        }
         const variant = l.variant ? p.printVariants?.find((v) => v.id === l.variant) : undefined;
         if (l.variant && !variant) return { ok: false, error: `That print for ${p.name} is no longer available.` };
         const img = getImage(p, "back", variant?.id);
@@ -126,7 +166,39 @@ export async function placeOrder(input: { customer: Partial<Customer>; lines: Ca
       }
 
       const subtotal = items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
-      const shipping = subtotal >= db.settings.freeShippingThreshold ? 0 : db.settings.shippingFee;
+
+      // delivery zone: required once the store has zones
+      const zones = db.settings.shippingZones ?? [];
+      const zone = zones.find((z) => z.id === input.zoneId);
+      if (zones.length && !zone) return { ok: false, error: "Please choose your delivery area." };
+      // copy: with Neon this callback can run again after a write conflict
+      const buyer = { ...customer };
+      if (zone) buyer.city = buyer.city.toLowerCase() === zone.name.toLowerCase() ? zone.name : `${zone.name} · ${buyer.city}`;
+      let shipping = shippingFor(db.settings, subtotal, zone?.id);
+
+      const payment = PAYMENT_METHODS.includes(input.payment as PaymentMethod) ? (input.payment as PaymentMethod) : "cod";
+      if (!db.settings.payments?.[payment]?.enabled) return { ok: false, error: "That payment method isn't available. Please pick another." };
+
+      let discount: Order["discount"];
+      const code = str(input.discountCode, 30).toUpperCase();
+      if (code) {
+        const d = db.discounts.find((x) => x.code === code);
+        const problem = discountProblem(d, subtotal);
+        if (problem || !d) return { ok: false, error: problem === "MIN" ? "Your bag is below the minimum for that code." : problem ?? "That code isn't valid." };
+        // free shipping zeroes the fee instead of taking money off the items
+        discount = { code: d.code, amount: d.type === "free_shipping" ? 0 : discountAmount(d, subtotal, shipping) };
+        if (d.type === "free_shipping") shipping = 0;
+        d.uses += 1;
+      }
+
+      // take tracked stock
+      for (const it of items) {
+        const p = it.slug ? db.products.find((x) => x.slug === it.slug) : undefined;
+        if (!p?.stock || p.stock[it.size] === undefined) continue;
+        const left = Math.max(0, p.stock[it.size]! - it.qty);
+        p.stock[it.size] = left;
+        if (left === 0 && !p.soldOut.includes(it.size)) p.soldOut.push(it.size);
+      }
       const now = new Date().toISOString();
       db.seq += 1;
       const order: Order = {
@@ -135,12 +207,13 @@ export async function placeOrder(input: { customer: Partial<Customer>; lines: Ca
         createdAt: now,
         updatedAt: now,
         status: "pending",
-        customer,
+        customer: buyer,
         items,
         subtotal,
         shipping,
-        total: subtotal + shipping,
-        payment: "cod",
+        total: Math.max(0, subtotal - (discount?.amount ?? 0)) + shipping,
+        payment,
+        discount,
         history: [{ at: now, status: "pending" }],
       };
       db.orders.unshift(order);
@@ -154,7 +227,7 @@ export async function placeOrder(input: { customer: Partial<Customer>; lines: Ca
         at: now,
         kind: custom ? "custom-order" : "order",
         title: `New order ${order.number}${custom ? " · custom design" : ""}`,
-        body: `${customer.name} · ${customer.city} · ${pieces} item${pieces === 1 ? "" : "s"} · ${formatPrice(order.total)}`,
+        body: `${buyer.name} · ${buyer.city} · ${pieces} item${pieces === 1 ? "" : "s"} · ${formatPrice(order.total)}`,
         href: `/admin/orders/${order.id}`,
         read: false,
       });

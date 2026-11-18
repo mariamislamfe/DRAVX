@@ -47,7 +47,7 @@ export function CategoryManager({ rows }: { rows: Row[] }) {
         {rows.length === 0 ? (
           <p className={styles.empty}>No categories yet.</p>
         ) : (
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.cards}`}>
             <thead>
               <tr>
                 <th>Order</th>
@@ -61,28 +61,28 @@ export function CategoryManager({ rows }: { rows: Row[] }) {
             <tbody>
               {rows.map((c) => (
                 <tr key={c.id}>
-                  <td className={styles.muted}>{c.order}</td>
+                  <td className={`${styles.muted} ${styles.hideSm}`}>{c.order}</td>
                   <td>
                     <strong>{c.name}</strong>
                     {c.description && <div className={styles.muted}>{c.description}</div>}
                   </td>
-                  <td className={styles.muted}>
+                  <td className={styles.muted} data-label="ID">
                     <code>{c.id}</code>
                     {c.sizeChart && <div>size guide ✓</div>}
                   </td>
-                  <td>
+                  <td data-label="Products">
                     <Link href={`/admin/products?cat=${c.id}`} className={styles.rowLink}>
                       {c.products}
                     </Link>
                     {c.templates > 0 && <span className={styles.muted}> · {c.templates} custom</span>}
                   </td>
-                  <td>
+                  <td className={styles.statusCell}>
                     <span className={styles.pill} data-s={c.active ? "delivered" : "off"}>
                       {c.active ? "Visible" : "Hidden"}
                     </span>
                   </td>
-                  <td>
-                    <div className={styles.actions} style={{ justifyContent: "flex-end" }}>
+                  <td className={styles.full}>
+                    <div className={`${styles.actions} ${styles.rowActions}`}>
                       <button type="button" className={`${styles.btnGhost} ${styles.btnSm}`} onClick={() => setEditing({ originalId: c.id, data: { ...c } })}>
                         Edit
                       </button>
