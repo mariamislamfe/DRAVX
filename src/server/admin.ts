@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { mutate } from "./db";
 import { MIN_PASSWORD, checkPassword, endSession, hashPassword, requireAdmin, startSession } from "./auth";
-import { SIZES, WORLD_IDS, type ImageKind, type Product, type ProductColor, type Size } from "@/data/products";
+import { SIZES, WORLD_IDS, adjustStock, syncSoldOut, type ImageKind, type Product, type ProductColor, type Size } from "@/data/products";
 import {
   DEFAULT_BRAND,
   ORDER_STATUSES,
@@ -164,7 +164,7 @@ export async function saveProduct(input: Product & { originalSlug?: string }): P
     const cname = str(c?.name, 60);
     const id = slugify(str(c?.id) || cname);
     if (!cname || !id || colors.some((x) => x.id === id)) continue;
-    colors.push({ id, name: cname, hex: hex(c.hex, "#111111") });
+    colors.push({ id, name: cname, hex: hex(c.hex, "#111111"), soldOut: sizes(c.soldOut).filter((s) => productSizes.includes(s)), stock: cleanStock(c.stock, productSizes) });
   }
   const colorIds = new Set(colors.map((c) => c.id));
 
@@ -209,6 +209,18 @@ export async function saveProduct(input: Product & { originalSlug?: string }): P
     if (!db.categories.some((c) => c.id === product.categoryId)) return { ok: false, error: "Choose a category." };
     const existing = input.originalSlug ? db.products.find((p) => p.slug === input.originalSlug) : undefined;
     if (db.products.some((p) => p.slug === slug && p !== existing)) return { ok: false, error: `Another product already uses the URL “${slug}”.` };
+    // stock counts are owned by the server (orders change them): keep the saved ones,
+    // and only take the editor's when stock moves between the product and its colours
+    if (product.colors) {
+      for (const c of product.colors) {
+        const before = existing?.colors?.find((x) => x.id === c.id);
+        if (before) c.stock = before.stock;
+        else if (existing && !existing.colors?.length && c === product.colors[0]) c.stock = existing.stock;
+      }
+    } else if (existing?.colors?.length) {
+      product.stock = cleanStock(input.stock, productSizes);
+    }
+    syncSoldOut(product);
     if (existing) Object.assign(existing, product);
     else db.products.push(product);
     return { ok: true, id: slug };
@@ -505,22 +517,33 @@ export async function deleteDiscount(code: string) {
 /* Inventory                                                           */
 /* ------------------------------------------------------------------ */
 
-/** rows: slug → size → units (null = don't track this size). */
+/** Units per size; sizes left out (or null) aren't tracked. */
+function cleanStock(row: unknown, productSizes: Size[]): Partial<Record<Size, number>> | undefined {
+  if (!row || typeof row !== "object") return undefined;
+  const stock: Partial<Record<Size, number>> = {};
+  for (const sz of productSizes) {
+    const v = (row as Record<string, unknown>)[sz];
+    if (v === null || v === undefined || v === "" || !Number.isFinite(Number(v))) continue;
+    stock[sz] = Math.round(num(v, 0, 1e6));
+  }
+  return Object.keys(stock).length ? stock : undefined;
+}
+
+/** rows: "slug" or "slug|colourId" → size → units (null = don't track this size). */
 export async function saveInventory(rows: Record<string, Record<string, number | null>>): Promise<ActionResult> {
   await requireAdmin();
   await mutate((db) => {
     for (const p of db.products) {
-      const row = rows?.[p.slug];
-      if (!row || typeof row !== "object") continue;
-      const stock: Partial<Record<Size, number>> = {};
-      for (const sz of p.sizes) {
-        const v = row[sz];
-        if (v === null || v === undefined || !Number.isFinite(Number(v))) continue;
-        stock[sz] = Math.round(num(v, 0, 1e6));
+      const holders = p.colors?.length ? p.colors.map((c) => ({ key: `${p.slug}|${c.id}`, h: c as { soldOut?: Size[]; stock?: Partial<Record<Size, number>> } })) : [{ key: p.slug, h: p }];
+      for (const { key, h } of holders) {
+        const row = rows?.[key];
+        if (!row || typeof row !== "object") continue;
+        const stock = cleanStock(row, p.sizes) ?? {};
+        h.stock = Object.keys(stock).length ? stock : undefined;
+        // tracked sizes sell out at 0 and come back when restocked
+        h.soldOut = p.sizes.filter((sz) => (sz in stock ? stock[sz]! <= 0 : (h.soldOut ?? []).includes(sz)));
       }
-      p.stock = Object.keys(stock).length ? stock : undefined;
-      // tracked sizes sell out at 0 and come back when restocked
-      p.soldOut = p.sizes.filter((sz) => (sz in stock ? stock[sz]! <= 0 : p.soldOut.includes(sz)));
+      syncSoldOut(p);
     }
   });
   refresh();
@@ -531,10 +554,8 @@ export async function saveInventory(rows: Record<string, Record<string, number |
 function moveStock(db: DB, o: Order, dir: 1 | -1) {
   for (const it of o.items) {
     const p = it.slug ? db.products.find((x) => x.slug === it.slug) : undefined;
-    if (!p?.stock || !(it.size in p.stock)) continue;
-    const left = Math.max(0, (p.stock[it.size] ?? 0) + dir * it.qty);
-    p.stock[it.size] = left;
-    p.soldOut = left > 0 ? p.soldOut.filter((s) => s !== it.size) : [...new Set([...p.soldOut, it.size])];
+    // orders from before the product had colours count against the default colour
+    if (p) adjustStock(p, it.color ?? p.colors?.[0]?.id, it.size, dir * it.qty);
   }
 }
 

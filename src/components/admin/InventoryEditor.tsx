@@ -8,8 +8,11 @@ import type { Size } from "@/data/products";
 import styles from "./Admin.module.css";
 
 export type InventoryRow = {
+  /** slug, or slug|colourId for products in several colours */
+  key: string;
   slug: string;
   name: string;
+  color?: { name: string; hex: string };
   category: string;
   image?: string;
   active: boolean;
@@ -27,14 +30,14 @@ export function InventoryEditor({ rows }: { rows: InventoryRow[] }) {
   const [filter, setFilter] = useState<"all" | "low" | "out">("all");
   // text values so an empty box means "not tracked"
   const initial = useMemo(
-    () => Object.fromEntries(rows.map((r) => [r.slug, Object.fromEntries(r.sizes.map((s) => [s, r.stock[s] === undefined ? "" : String(r.stock[s])]))])),
+    () => Object.fromEntries(rows.map((r) => [r.key, Object.fromEntries(r.sizes.map((s) => [s, r.stock[s] === undefined ? "" : String(r.stock[s])]))])),
     [rows]
   );
   const [values, setValues] = useState<Record<string, Record<string, string>>>(initial);
   const dirty = JSON.stringify(values) !== JSON.stringify(initial);
 
   const level = (r: InventoryRow, s: Size): "out" | "low" | "ok" | "free" => {
-    const v = values[r.slug]?.[s] ?? "";
+    const v = values[r.key]?.[s] ?? "";
     if (v === "") return r.soldOut.includes(s) ? "out" : "free";
     const n = Number(v);
     return n <= 0 ? "out" : n <= LOW ? "low" : "ok";
@@ -43,14 +46,14 @@ export function InventoryEditor({ rows }: { rows: InventoryRow[] }) {
   const lowCount = rows.filter((r) => r.sizes.some((s) => ["low", "out"].includes(level(r, s)))).length;
   const outCount = rows.filter((r) => r.sizes.some((s) => level(r, s) === "out")).length;
 
-  const set = (slug: string, size: Size, v: string) => {
+  const set = (key: string, size: Size, v: string) => {
     setMsg(null);
-    setValues((prev) => ({ ...prev, [slug]: { ...prev[slug], [size]: v.replace(/[^\d]/g, "").slice(0, 6) } }));
+    setValues((prev) => ({ ...prev, [key]: { ...prev[key], [size]: v.replace(/[^\d]/g, "").slice(0, 6) } }));
   };
 
   const save = () => {
     const payload = Object.fromEntries(
-      Object.entries(values).map(([slug, row]) => [slug, Object.fromEntries(Object.entries(row).map(([s, v]) => [s, v === "" ? null : Number(v)]))])
+      Object.entries(values).map(([key, row]) => [key, Object.fromEntries(Object.entries(row).map(([s, v]) => [s, v === "" ? null : Number(v)]))])
     );
     start(async () => {
       await saveInventory(payload);
@@ -78,7 +81,7 @@ export function InventoryEditor({ rows }: { rows: InventoryRow[] }) {
       ) : (
         <ul className={styles.invList}>
           {shown.map((r) => (
-            <li key={r.slug} className={styles.invRow}>
+            <li key={r.key} className={styles.invRow}>
               <div className={styles.invProduct}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {r.image ? <img src={r.image} alt="" className={styles.thumb} /> : <span className={styles.thumb} />}
@@ -87,6 +90,12 @@ export function InventoryEditor({ rows }: { rows: InventoryRow[] }) {
                     {r.name}
                   </Link>
                   <div className={styles.muted}>
+                    {r.color && (
+                      <>
+                        <span className={styles.swatch} style={{ background: r.color.hex }} />
+                        {r.color.name} ·{" "}
+                      </>
+                    )}
                     {r.category}
                     {!r.active && " · hidden"}
                   </div>
@@ -98,10 +107,10 @@ export function InventoryEditor({ rows }: { rows: InventoryRow[] }) {
                     <span>{s}</span>
                     <input
                       inputMode="numeric"
-                      value={values[r.slug]?.[s] ?? ""}
-                      onChange={(e) => set(r.slug, s, e.target.value)}
+                      value={values[r.key]?.[s] ?? ""}
+                      onChange={(e) => set(r.key, s, e.target.value)}
                       placeholder={r.soldOut.includes(s) ? "out" : "∞"}
-                      aria-label={`${r.name} size ${s} stock`}
+                      aria-label={`${r.name}${r.color ? ` ${r.color.name}` : ""} size ${s} stock`}
                     />
                   </label>
                 ))}

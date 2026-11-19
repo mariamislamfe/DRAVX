@@ -31,6 +31,10 @@ export type ProductColor = {
   id: string;
   name: string;
   hex: string;
+  /** Sizes sold out in this colour. */
+  soldOut?: Size[];
+  /** Units in stock per size for this colour. A size left out isn't tracked. */
+  stock?: Partial<Record<Size, number>>;
 };
 
 export type PrintVariant = {
@@ -60,8 +64,9 @@ export type Product = {
   details: string[];
   fit: string;
   sizes: Size[];
+  /** Sizes sold out. With several colours: only the sizes sold out in every colour. */
   soldOut: Size[];
-  /** Units in stock per size. A size left out isn't tracked (never runs out on its own). */
+  /** Units in stock per size (single-colour products; colours keep their own). A size left out isn't tracked. */
   stock?: Partial<Record<Size, number>>;
   printVariants?: PrintVariant[];
   images: ProductImage[];
@@ -183,6 +188,39 @@ export function productColors(product: Product): ProductColor[] {
 export function getColor(product: Product, id?: string): ProductColor {
   const list = productColors(product);
   return list.find((c) => c.id === id) ?? list[0];
+}
+
+/** Where stock lives for a colour: the colour itself, or the product when it has one colour. */
+export function stockHolder(product: Product, color?: string): { soldOut?: Size[]; stock?: Partial<Record<Size, number>> } {
+  return product.colors?.length ? getColor(product, color) : product;
+}
+
+/** Sizes that can't be ordered in this colour. */
+export function soldOutFor(product: Product, color?: string): Size[] {
+  return stockHolder(product, color).soldOut ?? [];
+}
+
+/** Tracked units of a size in a colour, or undefined when not tracked. */
+export function stockLeft(product: Product, color: string | undefined, size: Size): number | undefined {
+  return stockHolder(product, color).stock?.[size];
+}
+
+/** With several colours, a size is only sold out for the product once it's out in every colour. */
+export function syncSoldOut(product: Product) {
+  if (!product.colors?.length) return;
+  product.soldOut = product.sizes.filter((s) => product.colors!.every((c) => c.soldOut?.includes(s)));
+  product.stock = undefined;
+}
+
+/** Add (positive) or take (negative) tracked units. Untracked sizes are left alone. Mutates. */
+export function adjustStock(product: Product, color: string | undefined, size: Size, delta: number) {
+  const h = stockHolder(product, color);
+  if (h.stock?.[size] === undefined) return;
+  const left = Math.max(0, h.stock[size]! + delta);
+  h.stock[size] = left;
+  const rest = (h.soldOut ?? []).filter((s) => s !== size);
+  h.soldOut = left > 0 ? rest : [...rest, size];
+  syncSoldOut(product);
 }
 
 /**

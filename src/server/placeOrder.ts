@@ -16,7 +16,7 @@ import {
   type PaymentMethod,
 } from "@/data/schema";
 import { readDB } from "./db";
-import { getImage, type Size } from "@/data/products";
+import { adjustStock, getImage, soldOutFor, stockLeft, type Size } from "@/data/products";
 import type { CartLine } from "@/lib/store";
 import { formatPrice, setCurrency } from "@/config/brand";
 
@@ -142,17 +142,18 @@ export async function placeOrder(input: {
 
         const p = db.products.find((x) => x.slug === l.slug && x.active);
         if (!p) return { ok: false, error: "An item in your bag is no longer available." };
-        if (!p.sizes.includes(l.size) || p.soldOut.includes(l.size as Size)) return { ok: false, error: `${p.name} in ${l.size} just sold out.` };
-        const tracked = p.stock?.[l.size as Size];
-        if (tracked !== undefined) {
-          const wanted = qty + items.filter((i) => i.slug === p.slug && i.size === l.size).reduce((n, i) => n + i.qty, 0);
-          if (wanted > tracked) return { ok: false, error: `Only ${tracked} left of ${p.name} in ${l.size}.` };
-        }
-        const variant = l.variant ? p.printVariants?.find((v) => v.id === l.variant) : undefined;
-        if (l.variant && !variant) return { ok: false, error: `That print for ${p.name} is no longer available.` };
         // bags from before the product had colours carry none: use the default
         const color = p.colors?.length ? (l.color ? p.colors.find((c) => c.id === l.color) : p.colors[0]) : undefined;
         if (p.colors?.length && !color) return { ok: false, error: `That colour of ${p.name} is no longer available.` };
+        const what = color ? `${p.name} in ${color.name}, size ${l.size}` : `${p.name} in ${l.size}`;
+        if (!p.sizes.includes(l.size) || soldOutFor(p, color?.id).includes(l.size as Size)) return { ok: false, error: `${what} just sold out.` };
+        const tracked = stockLeft(p, color?.id, l.size as Size);
+        if (tracked !== undefined) {
+          const wanted = qty + items.filter((i) => i.slug === p.slug && i.size === l.size && i.color === color?.id).reduce((n, i) => n + i.qty, 0);
+          if (wanted > tracked) return { ok: false, error: `Only ${tracked} left of ${what}.` };
+        }
+        const variant = l.variant ? p.printVariants?.find((v) => v.id === l.variant) : undefined;
+        if (l.variant && !variant) return { ok: false, error: `That print for ${p.name} is no longer available.` };
         const img = getImage(p, "back", variant?.id, color?.id);
         items.push({
           kind: "product",
@@ -198,10 +199,7 @@ export async function placeOrder(input: {
       // take tracked stock
       for (const it of items) {
         const p = it.slug ? db.products.find((x) => x.slug === it.slug) : undefined;
-        if (!p?.stock || p.stock[it.size] === undefined) continue;
-        const left = Math.max(0, p.stock[it.size]! - it.qty);
-        p.stock[it.size] = left;
-        if (left === 0 && !p.soldOut.includes(it.size)) p.soldOut.push(it.size);
+        if (p) adjustStock(p, it.color, it.size, -it.qty);
       }
       const now = new Date().toISOString();
       db.seq += 1;

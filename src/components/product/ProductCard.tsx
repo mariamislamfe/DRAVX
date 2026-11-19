@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { gsap } from "@/lib/gsap";
 import { useCart } from "@/lib/store";
 import { flyToCart } from "@/lib/fly";
-import { WORLDS, type Product, type Size } from "@/data/products";
+import { WORLDS, type Product, type Size, soldOutFor } from "@/data/products";
 import { formatPrice } from "@/config/brand";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import { ProductVisual } from "./ProductVisual";
@@ -106,7 +106,7 @@ export function ProductCard({ product, index = 0, priority }: { product: Product
         <span className={`${styles.quickLabel} mono`}>{added ? `Added size ${added} ✓` : "Quick add"}</span>
         <div className={styles.sizes}>
           {product.sizes.map((s) => {
-            const out = product.soldOut.includes(s);
+            const out = soldOutFor(product, product.colors?.[0]?.id).includes(s);
             return (
               <button
                 key={s}

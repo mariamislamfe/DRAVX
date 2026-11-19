@@ -9,7 +9,7 @@ import { useCatalog } from "@/lib/catalog";
 import { WORLDS, type Product, type Size } from "@/data/products";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import Image from "next/image";
-import { getColor, getImage, productColors } from "@/data/products";
+import { getColor, getImage, productColors, soldOutFor } from "@/data/products";
 import { QtyStepper } from "@/components/cart/QtyStepper";
 import { SizeGuide } from "./SizeGuide";
 import { Accordion } from "./Accordion";
@@ -45,6 +45,12 @@ export function BuyPanel({ product, variant, onVariant, color, onColor }: Props)
   const variantObj = product.printVariants?.find((v) => v.id === variant);
   const colors = productColors(product);
   const colorObj = getColor(product, color);
+  const soldOut = soldOutFor(product, color);
+
+  // a size picked in one colour may be sold out in the next
+  useEffect(() => {
+    if (size && soldOut.includes(size)) setSize(null);
+  }, [size, soldOut]);
 
   // sliding highlight behind the selected size
   useLayoutEffect(() => {
@@ -204,7 +210,7 @@ export function BuyPanel({ product, variant, onVariant, color, onColor }: Props)
           <div ref={sizesRef} className={styles.sizes} data-error={status === "error" || undefined}>
             <span ref={hiRef} className={styles.sizeHi} aria-hidden="true" />
             {product.sizes.map((s) => {
-              const out = product.soldOut.includes(s);
+              const out = soldOut.includes(s);
               return (
                 <label key={s} className={styles.size} data-size={s} data-out={out || undefined} data-on={size === s || undefined}>
                   <input
@@ -226,7 +232,7 @@ export function BuyPanel({ product, variant, onVariant, color, onColor }: Props)
             })}
           </div>
           <p className={`${styles.sizeMsg} mono`} role="status" aria-live="polite">
-            {status === "error" ? "↑ Pick a size first" : product.soldOut.length ? `${product.soldOut.join(", ")} sold out` : " "}
+            {status === "error" ? "↑ Pick a size first" : soldOut.length ? `${soldOut.join(", ")} sold out` : " "}
           </p>
         </fieldset>
 

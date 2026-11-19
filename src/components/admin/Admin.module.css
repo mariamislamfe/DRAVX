@@ -1426,3 +1426,21 @@
     grid-template-columns: 1fr auto;
   }
 }
+
+.soldOutRow {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+}
+.soldOutName {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+}
+@media (max-width: 640px) {
+  .soldOutRow {
+    grid-template-columns: 1fr;
+  }
+}

@@ -44,7 +44,7 @@ export function ProductEditor({ initial, categories, isNew }: { initial: Product
     const fresh = { id: newColorId(), name: "", hex: "#ffffff" };
     if (colors.length) return setColors([...colors, fresh]);
     // going from one colour to several: the photos so far are of the current colour
-    const first = { id: newColorId(), name: p.colorName || "Colour 1", hex: p.colorHex };
+    const first = { id: newColorId(), name: p.colorName || "Colour 1", hex: p.colorHex, soldOut: p.soldOut, stock: p.stock };
     setColors([first, fresh], p.images.map((im) => ({ ...im, color: first.id })));
   };
   const removeColor = (i: number) => {
@@ -56,7 +56,7 @@ export function ProductEditor({ initial, categories, isNew }: { initial: Product
     // back to a single colour: its photos become the product's photos
     if (rest.length === 1) setColors([], images.map((im) => ({ ...im, color: undefined })));
     else setColors(rest, images);
-    if (rest.length === 1) set({ colorName: rest[0].name, colorHex: rest[0].hex });
+    if (rest.length === 1) set({ colorName: rest[0].name, colorHex: rest[0].hex, soldOut: rest[0].soldOut ?? [], stock: rest[0].stock });
   };
   const moveColor = (i: number, d: -1 | 1) => {
     const j = i + d;
@@ -195,24 +195,60 @@ export function ProductEditor({ initial, categories, isNew }: { initial: Product
                 <div className={styles.chips}>
                   {SIZES.map((s) => (
                     <label key={s} className={styles.chip}>
-                      <input type="checkbox" checked={p.sizes.includes(s)} onChange={() => set({ sizes: toggle(p.sizes, s), soldOut: p.soldOut.filter((x) => x !== s || !p.sizes.includes(s)) })} />
+                      <input type="checkbox" checked={p.sizes.includes(s)} onChange={() =>
+                          set({
+                            sizes: toggle(p.sizes, s),
+                            soldOut: p.soldOut.filter((x) => x !== s),
+                            colors: p.colors?.map((c) => ({ ...c, soldOut: c.soldOut?.filter((x) => x !== s) })),
+                          })
+                        }
+                      />
                       {s}
                     </label>
                   ))}
                 </div>
               </div>
-              <div className={styles.field}>
-                <span>Sold out</span>
-                <div className={styles.chips}>
-                  {p.sizes.map((s) => (
-                    <label key={s} className={`${styles.chip} ${styles.chipOut}`}>
-                      <input type="checkbox" checked={p.soldOut.includes(s)} onChange={() => set({ soldOut: toggle(p.soldOut, s) })} />
-                      {s}
-                    </label>
-                  ))}
+              {colors.length === 0 ? (
+                <div className={styles.field}>
+                  <span>Sold out</span>
+                  <div className={styles.chips}>
+                    {p.sizes.map((s) => (
+                      <label key={s} className={`${styles.chip} ${styles.chipOut}`}>
+                        <input type="checkbox" checked={p.soldOut.includes(s)} onChange={() => set({ soldOut: toggle(p.soldOut, s) })} />
+                        {s}
+                      </label>
+                    ))}
+                  </div>
+                  <small>Customers can&apos;t pick or order sold-out sizes.</small>
                 </div>
-                <small>Customers can&apos;t pick or order sold-out sizes.</small>
-              </div>
+              ) : (
+                <div className={styles.field}>
+                  <span>Sold out, per colour</span>
+                  {colors.map((c, i) => (
+                    <div key={c.id} className={styles.soldOutRow}>
+                      <span className={styles.soldOutName}>
+                        <span className={styles.swatch} style={{ background: c.hex }} />
+                        {c.name || "New colour"}
+                      </span>
+                      <div className={styles.chips}>
+                        {p.sizes.map((s) => (
+                          <label key={s} className={`${styles.chip} ${styles.chipOut}`}>
+                            <input type="checkbox" checked={!!c.soldOut?.includes(s)} onChange={() => setColor(i, { soldOut: toggle(c.soldOut ?? [], s) })} />
+                            {s}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <small>
+                    Customers can&apos;t pick a size that&apos;s sold out in the colour they chose. Set unit counts per colour in{" "}
+                    <Link href="/admin/inventory" className={styles.rowLink}>
+                      Inventory
+                    </Link>
+                    .
+                  </small>
+                </div>
+              )}
             </div>
           </section>
 
