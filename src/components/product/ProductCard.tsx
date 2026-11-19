@@ -43,7 +43,7 @@ export function ProductCard({ product, index = 0, priority }: { product: Product
   }, []);
 
   const quickAdd = (size: Size, btn: HTMLElement) => {
-    add({ slug: product.slug, size, variant: product.printVariants?.[0]?.id });
+    add({ slug: product.slug, size, variant: product.printVariants?.[0]?.id, color: product.colors?.[0]?.id });
     flyToCart(btn, product.world === "daydream" ? "#ff5b1f" : "#2d6bff");
     setAdded(size);
     window.setTimeout(() => setAdded(null), 1600);
@@ -95,7 +95,7 @@ export function ProductCard({ product, index = 0, priority }: { product: Product
             </TransitionLink>
           </h3>
           <p className={`${styles.meta} mono`}>
-            {product.colorName}
+            {product.colors && product.colors.length > 1 ? `${product.colors.length} colours` : product.colorName}
             {product.printVariants ? ` · ${product.printVariants.length} back prints` : ""}
           </p>
         </div>

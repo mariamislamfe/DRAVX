@@ -22,6 +22,15 @@ export type ProductImage = {
   src?: string;
   cutout?: string;
   variant?: string;
+  /** Colour id (see Product.colors). Empty = shared by every colour. */
+  color?: string;
+};
+
+/** One colour a product comes in. Its photos are the images tagged with its id. */
+export type ProductColor = {
+  id: string;
+  name: string;
+  hex: string;
 };
 
 export type PrintVariant = {
@@ -40,8 +49,11 @@ export type Product = {
   shortName: string;
   world: World;
   price: number; // PLACEHOLDER pricing
+  /** Default colour (mirrors colors[0] when the product has several). */
   colorName: string;
   colorHex: string;
+  /** Colours the shopper can pick from. Empty/missing = single colour above. */
+  colors?: ProductColor[];
   tagline: string;
   description: string;
   story: string;
@@ -161,25 +173,45 @@ export const SEED_PRODUCTS: Product[] = [
   },
 ];
 
+/** The colours on offer: the list, or the single default colour. */
+export function productColors(product: Product): ProductColor[] {
+  if (product.colors?.length) return product.colors;
+  return [{ id: "", name: product.colorName, hex: product.colorHex }];
+}
+
+/** A colour by id, falling back to the default (first) colour. */
+export function getColor(product: Product, id?: string): ProductColor {
+  const list = productColors(product);
+  return list.find((c) => c.id === id) ?? list[0];
+}
+
 /**
  * Best image for a slot. Variant-specific images win; a missing variant
  * detail falls back to that variant's back view so the print shown always
- * matches the selection.
+ * matches the selection. Photos tagged with the chosen colour win over
+ * shared ones; photos of other colours are only used as a last resort.
  */
-export function getImage(product: Product, kind: ImageKind, variant?: string): ProductImage {
+export function getImage(product: Product, kind: ImageKind, variant?: string, color?: string): ProductImage {
   const v = variant ?? product.printVariants?.[0]?.id;
-  const of = (k: ImageKind) => product.images.filter((i) => i.kind === k);
+  const c = product.colors?.length ? getColor(product, color).id : "";
+  const forColor = (i: ProductImage) => !c || !i.color || i.color === c;
+  const of = (k: ImageKind) =>
+    product.images
+      .filter((i) => i.kind === k && forColor(i))
+      .sort((a, b) => Number(!!c && b.color === c) - Number(!!c && a.color === c));
   const pick = (k: ImageKind) => {
     const list = of(k);
     return list.find((i) => i.variant && i.variant === v) ?? list.find((i) => !i.variant && (i.src || i.cutout)) ?? (v ? undefined : list[0]);
   };
-  if (kind === "detail-back") return pick("detail-back") ?? pick("back") ?? product.images[0];
-  return pick(kind) ?? of(kind)[0] ?? product.images[0];
+  const any = (k: ImageKind) => of(k)[0] ?? product.images.find((i) => i.kind === k);
+  const first = product.images.find(forColor) ?? product.images[0];
+  if (kind === "detail-back") return pick("detail-back") ?? pick("back") ?? first;
+  return pick(kind) ?? any(kind) ?? first;
 }
 
 /** Transparent garment for staged layouts. */
-export function getCutout(product: Product, view: "front" | "back", variant?: string) {
-  return getImage(product, view, variant).cutout;
+export function getCutout(product: Product, view: "front" | "back", variant?: string, color?: string) {
+  return getImage(product, view, variant, color).cutout;
 }
 
 /** The flagship product for a world, falling back to anything available. */

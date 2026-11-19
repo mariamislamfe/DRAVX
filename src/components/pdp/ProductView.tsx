@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { gsap, useGSAP, splitChars } from "@/lib/gsap";
 import { useOnReady } from "@/lib/useReady";
-import { type ImageKind } from "@/data/products";
+import { getColor, type ImageKind } from "@/data/products";
 import { findProduct, useCatalog } from "@/lib/catalog";
 import { ProductCard } from "@/components/product/ProductCard";
 import { NotifyTile } from "@/components/product/NotifyTile";
@@ -21,6 +21,7 @@ export function ProductView({ slug }: { slug: string }) {
   const initialVariant = product.printVariants?.find((v) => v.id === params.get("print"))?.id ?? product.printVariants?.[0]?.id;
   const [view, setView] = useState<ImageKind>(params.get("print") ? "back" : "front");
   const [variant, setVariant] = useState<string | undefined>(initialVariant);
+  const [color, setColor] = useState<string>(() => getColor(product, params.get("color") ?? undefined).id);
   const [zoom, setZoom] = useState<number | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const intro = useRef<gsap.core.Timeline | null>(null);
@@ -29,6 +30,13 @@ export function ProductView({ slug }: { slug: string }) {
   const chooseVariant = (id: string) => {
     setVariant(id);
     setView("back"); // show the print you just picked
+  };
+  const chooseColor = (id: string) => {
+    setColor(id);
+    // keep the colour in the address so a shared link opens on it
+    const url = new URL(window.location.href);
+    url.searchParams.set("color", id);
+    window.history.replaceState(window.history.state, "", url);
   };
 
   useLayoutEffect(() => {
@@ -60,8 +68,8 @@ export function ProductView({ slug }: { slug: string }) {
   return (
     <div ref={root} className={styles.page} data-world={product.world}>
       <div className={`${styles.top} wrap`}>
-        <Gallery product={product} view={view} setView={setView} variant={variant} onZoom={setZoom} />
-        <BuyPanel product={product} variant={variant} onVariant={chooseVariant} />
+        <Gallery product={product} view={view} setView={setView} variant={variant} color={color} onZoom={setZoom} />
+        <BuyPanel product={product} variant={variant} onVariant={chooseVariant} color={color} onColor={chooseColor} />
       </div>
 
       {/* editorial strip */}
@@ -69,7 +77,7 @@ export function ProductView({ slug }: { slug: string }) {
         <figure className={`${styles.ed} ${styles.edA}`}>
           <div className={styles.edMedia} data-reveal>
             <div className={styles.edInner}>
-              <ProductVisual product={product} kind="detail-front" sizes="(max-width: 900px) 100vw, 40vw" />
+              <ProductVisual product={product} kind="detail-front" color={color} sizes="(max-width: 900px) 100vw, 40vw" />
             </div>
           </div>
           <figcaption className="mono">Front detail — the quiet side</figcaption>
@@ -77,7 +85,7 @@ export function ProductView({ slug }: { slug: string }) {
         <figure className={`${styles.ed} ${styles.edB}`}>
           <div className={styles.edMedia} data-reveal>
             <div className={styles.edInner}>
-              <ProductVisual product={product} kind="detail-back" variant={variant} sizes="(max-width: 900px) 100vw, 50vw" />
+              <ProductVisual product={product} kind="detail-back" variant={variant} color={color} sizes="(max-width: 900px) 100vw, 50vw" />
             </div>
           </div>
           <figcaption className="mono">Back detail — the loud side</figcaption>
@@ -97,7 +105,7 @@ export function ProductView({ slug }: { slug: string }) {
         </div>
       </section>
 
-      <Lightbox product={product} variant={variant} index={zoom} onClose={() => setZoom(null)} onIndex={setZoom} />
+      <Lightbox product={product} variant={variant} color={color} index={zoom} onClose={() => setZoom(null)} onIndex={setZoom} />
     </div>
   );
 }

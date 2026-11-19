@@ -7,10 +7,12 @@ import type { Size } from "@/data/products";
 import type { CustomDesign } from "@/data/schema";
 
 export type CartLine = {
-  key: string; // slug|size|variant, or custom|<id> for customizer designs
+  key: string; // slug|size|variant|color, or custom|<id> for customizer designs
   slug: string; // template id for custom lines
   size: Size;
   variant?: string;
+  /** Colour id, for products sold in several colours. */
+  color?: string;
   qty: number;
   custom?: CustomDesign;
 };
@@ -31,7 +33,7 @@ export const useCart = create<CartState>()(
       lines: [],
       add: (line, qty = 1) =>
         set((s) => {
-          const key = line.custom ? `custom|${crypto.randomUUID()}` : [line.slug, line.size, line.variant ?? ""].join("|");
+          const key = line.custom ? `custom|${crypto.randomUUID()}` : [line.slug, line.size, line.variant ?? "", line.color ?? ""].join("|");
           const existing = s.lines.find((l) => l.key === key);
           if (existing) {
             return {

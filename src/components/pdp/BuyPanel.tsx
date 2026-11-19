@@ -9,7 +9,7 @@ import { useCatalog } from "@/lib/catalog";
 import { WORLDS, type Product, type Size } from "@/data/products";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import Image from "next/image";
-import { getImage } from "@/data/products";
+import { getColor, getImage, productColors } from "@/data/products";
 import { QtyStepper } from "@/components/cart/QtyStepper";
 import { SizeGuide } from "./SizeGuide";
 import { Accordion } from "./Accordion";
@@ -17,7 +17,15 @@ import styles from "./Pdp.module.css";
 
 type Status = "idle" | "error" | "adding" | "added";
 
-export function BuyPanel({ product, variant, onVariant }: { product: Product; variant?: string; onVariant: (id: string) => void }) {
+type Props = {
+  product: Product;
+  variant?: string;
+  onVariant: (id: string) => void;
+  color?: string;
+  onColor: (id: string) => void;
+};
+
+export function BuyPanel({ product, variant, onVariant, color, onColor }: Props) {
   const [size, setSize] = useState<Size | null>(null);
   const [qty, setQty] = useState(1);
   const [status, setStatus] = useState<Status>("idle");
@@ -35,6 +43,8 @@ export function BuyPanel({ product, variant, onVariant }: { product: Product; va
   const timer = useRef<number | null>(null);
   const world = WORLDS[product.world];
   const variantObj = product.printVariants?.find((v) => v.id === variant);
+  const colors = productColors(product);
+  const colorObj = getColor(product, color);
 
   // sliding highlight behind the selected size
   useLayoutEffect(() => {
@@ -88,7 +98,7 @@ export function BuyPanel({ product, variant, onVariant }: { product: Product; va
     }
     setStatus("adding");
     timer.current = window.setTimeout(() => {
-      add({ slug: product.slug, size, variant }, qty);
+      add({ slug: product.slug, size, variant, color: product.colors?.length ? colorObj.id : undefined }, qty);
       flyToCart(origin ?? btnRef.current, product.world === "daydream" ? "#ff5b1f" : "#2d6bff");
       setStatus("added");
       timer.current = window.setTimeout(() => setStatus("idle"), 4200);
@@ -129,12 +139,29 @@ export function BuyPanel({ product, variant, onVariant }: { product: Product; va
           {product.tagline}
         </p>
 
-        <div className={styles.option} data-buy>
-          <p className={`${styles.optLabel} mono`}>
-            Colour <span>{product.colorName}</span>
-          </p>
-          <span className={styles.swatch} style={{ background: product.colorHex }} aria-label={`${product.colorName} (only colour)`} role="img" />
-        </div>
+        {colors.length > 1 ? (
+          <fieldset className={styles.option} data-buy>
+            <legend className={`${styles.optLabel} mono`}>
+              Colour <span>{colorObj.name}</span>
+            </legend>
+            <div className={styles.swatches}>
+              {colors.map((c) => (
+                <label key={c.id} className={styles.swatchPick} data-on={c.id === colorObj.id || undefined} title={c.name}>
+                  <input type="radio" name="color" value={c.id} checked={c.id === colorObj.id} onChange={() => onColor(c.id)} className="sr-only" />
+                  <span className={styles.swatch} style={{ background: c.hex }} aria-hidden="true" />
+                  <span className="sr-only">{c.name}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ) : (
+          <div className={styles.option} data-buy>
+            <p className={`${styles.optLabel} mono`}>
+              Colour <span>{colorObj.name}</span>
+            </p>
+            <span className={styles.swatch} style={{ background: colorObj.hex }} aria-label={`${colorObj.name} (only colour)`} role="img" />
+          </div>
+        )}
 
         {product.printVariants && (
           <fieldset className={styles.option} data-buy>
@@ -147,7 +174,7 @@ export function BuyPanel({ product, variant, onVariant }: { product: Product; va
                   <input type="radio" name="print" value={v.id} checked={variant === v.id} onChange={() => onVariant(v.id)} className="sr-only" />
                   <span className={styles.variantArt} aria-hidden="true">
                     {(() => {
-                      const art = getImage(product, "back", v.id);
+                      const art = getImage(product, "back", v.id, color);
                       const src = art.variant === v.id ? art.src ?? art.cutout : undefined;
                       return src ? (
                         <Image src={src} alt="" fill sizes="120px" style={{ objectFit: "cover", objectPosition: "50% 45%", transform: "scale(1.55)" }} />
@@ -222,7 +249,7 @@ export function BuyPanel({ product, variant, onVariant }: { product: Product; va
         {status === "added" && (
           <div ref={confirmRef} className={styles.confirm} role="status">
             <p className="mono">
-              {product.shortName} · {size} {variantObj ? `· ${variantObj.label} ` : ""}× {qty} is in your bag.
+              {product.shortName} · {colors.length > 1 ? `${colorObj.name} · ` : ""}{size} {variantObj ? `· ${variantObj.label} ` : ""}× {qty} is in your bag.
             </p>
             <div className={styles.confirmLinks}>
               <button type="button" className="mono link-u" onClick={() => setCartOpen(true)}>

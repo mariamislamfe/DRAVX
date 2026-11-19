@@ -146,6 +146,8 @@ export type OrderItem = {
   size: Size;
   variant?: string;
   variantLabel?: string;
+  /** Colour id for products sold in several colours. */
+  color?: string;
   colorName?: string;
   qty: number;
   unitPrice: number;

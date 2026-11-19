@@ -21,10 +21,11 @@ type Props = {
   view: ImageKind;
   setView: (k: ImageKind) => void;
   variant?: string;
+  color?: string;
   onZoom: (i: number) => void;
 };
 
-export function Gallery({ product, view, setView, variant, onZoom }: Props) {
+export function Gallery({ product, view, setView, variant, color, onZoom }: Props) {
   const [shown, setShown] = useState<ImageKind>(view);
   const inner = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLButtonElement>(null);
@@ -87,7 +88,7 @@ export function Gallery({ product, view, setView, variant, onZoom }: Props) {
   useEffect(() => {
     if (!inner.current) return;
     gsap.fromTo(inner.current, { filter: "brightness(1.8) saturate(1.4)" }, { filter: "brightness(1) saturate(1)", duration: 0.6, ease: "power2.out" });
-  }, [variant]);
+  }, [variant, color]);
 
   // pointer parallax on the stage
   useEffect(() => {
@@ -140,7 +141,7 @@ export function Gallery({ product, view, setView, variant, onZoom }: Props) {
             className={styles.thumb}
             onClick={() => setView(g.kind)}
           >
-            <ProductVisual product={product} kind={g.kind} variant={variant} tag={false} sizes="90px" />
+            <ProductVisual product={product} kind={g.kind} variant={variant} color={color} tag={false} sizes="90px" />
           </button>
         ))}
       </div>
@@ -157,11 +158,11 @@ export function Gallery({ product, view, setView, variant, onZoom }: Props) {
           >
             <div className={styles.stageMedia}>
               <div ref={inner} className={styles.stageInner}>
-                <ProductVisual product={product} kind={shown} variant={variant} priority tag={false} sizes="(max-width: 900px) 100vw, 55vw" />
+                <ProductVisual product={product} kind={shown} variant={variant} color={color} priority tag={false} sizes="(max-width: 900px) 100vw, 55vw" />
               </div>
             </div>
           </button>
-          {!getImage(product, shown, variant).src && (
+          {!getImage(product, shown, variant, color).src && (
             <span className={`${styles.renderTag} tag ${product.world === "nightshift" ? "tag--blue" : ""}`}>
               {shown === "model" ? "Lookbook · campaign shoot pending" : "Render · photo pending"}
             </span>
@@ -186,7 +187,7 @@ export function Gallery({ product, view, setView, variant, onZoom }: Props) {
         <div ref={swipe} className={styles.swipe} onScroll={onSwipe} aria-label="Product images, swipe for more" tabIndex={0}>
           {GALLERY.map((g, i) => (
             <button key={g.kind} type="button" className={styles.slide} onClick={() => onZoom(i)} aria-label={`Zoom ${g.label.toLowerCase()} image`}>
-              <ProductVisual product={product} kind={g.kind} variant={variant} priority={i === 0} sizes="100vw" />
+              <ProductVisual product={product} kind={g.kind} variant={variant} color={color} priority={i === 0} sizes="100vw" />
             </button>
           ))}
         </div>

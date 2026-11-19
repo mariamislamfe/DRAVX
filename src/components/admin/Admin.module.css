@@ -1402,3 +1402,27 @@
     display: block;
   }
 }
+
+/* product colours */
+.colorRow4 {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.colorGroup {
+  padding: 12px 0 16px;
+  border-bottom: 1px solid var(--a-line);
+}
+.colorGroup h3 {
+  display: flex;
+  align-items: center;
+  font-size: 0.95rem;
+  margin: 8px 0 0;
+}
+@media (max-width: 640px) {
+  .colorRow4 {
+    grid-template-columns: 1fr auto;
+  }
+}

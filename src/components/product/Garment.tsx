@@ -6,6 +6,7 @@ type Props = {
   product: Product;
   view?: "front" | "back";
   variant?: string;
+  color?: string;
   className?: string;
   priority?: boolean;
   sizes?: string;
@@ -17,9 +18,9 @@ type Props = {
  * The garment on its own, background removed. All cut-outs share one
  * 1000×1150 canvas so different hoodies line up exactly when layered.
  */
-export function Garment({ product, view = "back", variant, className, priority, sizes = "(max-width: 900px) 90vw, 45vw", decorative }: Props) {
-  const src = getCutout(product, view, variant);
-  const alt = decorative ? "" : getImage(product, view, variant).alt;
+export function Garment({ product, view = "back", variant, color, className, priority, sizes = "(max-width: 900px) 90vw, 45vw", decorative }: Props) {
+  const src = getCutout(product, view, variant, color);
+  const alt = decorative ? "" : getImage(product, view, variant, color).alt;
   return (
     <div className={className} style={{ position: "relative", aspectRatio: "1000 / 1150", width: "100%" }} aria-hidden={decorative || undefined}>
       {src ? (

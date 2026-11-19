@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { deleteProduct, saveProduct } from "@/server/admin";
-import { SIZES, WORLDS, type ImageKind, type Product, type ProductImage, type Size, type World } from "@/data/products";
+import { SIZES, WORLDS, type ImageKind, type Product, type ProductColor, type ProductImage, type Size, type World } from "@/data/products";
 import { slugify, type Category } from "@/data/schema";
 import { UploadField } from "./UploadField";
 import styles from "./Admin.module.css";
@@ -33,6 +33,93 @@ export function ProductEditor({ initial, categories, isNew }: { initial: Product
   const setImg = (i: number, patch: Partial<ProductImage>) => set({ images: p.images.map((im, j) => (j === i ? { ...im, ...patch } : im)) });
   const toggle = (list: Size[], s: Size) => (list.includes(s) ? list.filter((x) => x !== s) : SIZES.filter((x) => x === s || list.includes(x)));
   const variants = (p.printVariants ?? []).map((v) => ({ ...v, id: v.id || slugify(v.label) }));
+  const colors = p.colors ?? [];
+  const newColorId = () => `c-${Math.random().toString(36).slice(2, 8)}`;
+
+  /** The first colour is the default the rest of the store shows. */
+  const setColors = (list: ProductColor[], images = p.images) =>
+    set({ colors: list.length ? list : undefined, images, ...(list[0] ? { colorName: list[0].name, colorHex: list[0].hex } : {}) });
+  const setColor = (i: number, patch: Partial<ProductColor>) => setColors(colors.map((c, j) => (j === i ? { ...c, ...patch } : c)));
+  const addColor = () => {
+    const fresh = { id: newColorId(), name: "", hex: "#ffffff" };
+    if (colors.length) return setColors([...colors, fresh]);
+    // going from one colour to several: the photos so far are of the current colour
+    const first = { id: newColorId(), name: p.colorName || "Colour 1", hex: p.colorHex };
+    setColors([first, fresh], p.images.map((im) => ({ ...im, color: first.id })));
+  };
+  const removeColor = (i: number) => {
+    const c = colors[i];
+    const own = p.images.filter((im) => im.color === c.id).length;
+    if (own && !window.confirm(`Remove “${c.name || "this colour"}” and its ${own} photo${own > 1 ? "s" : ""}?`)) return;
+    const rest = colors.filter((_, j) => j !== i);
+    const images = p.images.filter((im) => im.color !== c.id);
+    // back to a single colour: its photos become the product's photos
+    if (rest.length === 1) setColors([], images.map((im) => ({ ...im, color: undefined })));
+    else setColors(rest, images);
+    if (rest.length === 1) set({ colorName: rest[0].name, colorHex: rest[0].hex });
+  };
+  const moveColor = (i: number, d: -1 | 1) => {
+    const j = i + d;
+    if (j < 0 || j >= colors.length) return;
+    const list = [...colors];
+    [list[i], list[j]] = [list[j], list[i]];
+    setColors(list);
+  };
+
+  const photoRows = (color: string | undefined) =>
+    p.images.map((im, i) =>
+      im.color !== color ? null : (
+              <div key={i} className={styles.imgRow}>
+                <UploadField label="Cut-out" value={im.cutout} onChange={(u) => setImg(i, { cutout: u })} />
+                <UploadField label="Photo" value={im.src} onChange={(u) => setImg(i, { src: u })} />
+                <div className={styles.stack}>
+                  <label className={styles.field}>
+                    <span>Shows</span>
+                    <select value={im.kind} onChange={(e) => setImg(i, { kind: e.target.value as ImageKind })}>
+                      {Object.entries(KIND_LABEL).map(([k, l]) => (
+                        <option key={k} value={k}>
+                          {l}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {colors.length > 0 && (
+                    <label className={styles.field}>
+                      <span>Colour</span>
+                      <select value={im.color ?? ""} onChange={(e) => setImg(i, { color: e.target.value || undefined })}>
+                        <option value="">Every colour</option>
+                        {colors.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name || "New colour"}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  {variants.length > 0 && (
+                    <label className={styles.field}>
+                      <span>For design option</span>
+                      <select value={im.variant ?? ""} onChange={(e) => setImg(i, { variant: e.target.value || undefined })}>
+                        <option value="">All</option>
+                        {variants.map((v) => (
+                          <option key={v.id || v.label} value={v.id}>
+                            {v.label || v.id}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                </div>
+                <label className={styles.field}>
+                  <span>Alt text</span>
+                  <textarea rows={3} value={im.alt} onChange={(e) => setImg(i, { alt: e.target.value })} placeholder="Describe the photo for screen readers" />
+                </label>
+                <button type="button" className={`${styles.btnDanger} ${styles.btnSm}`} onClick={() => set({ images: p.images.filter((_, j) => j !== i) })}>
+                  Remove
+                </button>
+              </div>
+            )
+    );
 
   const save = () => {
     setError(null);
@@ -130,6 +217,53 @@ export function ProductEditor({ initial, categories, isNew }: { initial: Product
           </section>
 
           <section className={styles.card}>
+            <h2>Colours</h2>
+            {colors.length === 0 ? (
+              <>
+                <div className={styles.colorRow}>
+                  <input value={p.colorName} onChange={(e) => set({ colorName: e.target.value })} placeholder="Colour name, e.g. Black" aria-label="Colour name" />
+                  <input type="color" value={p.colorHex} onChange={(e) => set({ colorHex: e.target.value })} aria-label="Colour" />
+                </div>
+                <p className={styles.muted} style={{ margin: "4px 0 12px" }}>
+                  Sell the same product in more colours, each with its own photos. Customers pick the colour on the product page.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className={styles.muted} style={{ marginBottom: 12 }}>
+                  The first colour is the default shown in the shop. Add each colour&apos;s photos under Photos below.
+                </p>
+                {colors.map((c, i) => (
+                  <div key={c.id} className={styles.colorRow4}>
+                    <input value={c.name} onChange={(e) => setColor(i, { name: e.target.value })} placeholder="Colour name" aria-label="Colour name" required />
+                    <input type="color" value={c.hex} onChange={(e) => setColor(i, { hex: e.target.value })} aria-label={`${c.name || "Colour"} swatch`} />
+                    <div className={styles.actions}>
+                      <button type="button" className={`${styles.btnGhost} ${styles.btnSm}`} onClick={() => moveColor(i, -1)} disabled={i === 0} aria-label={`Move ${c.name} up`}>
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.btnGhost} ${styles.btnSm}`}
+                        onClick={() => moveColor(i, 1)}
+                        disabled={i === colors.length - 1}
+                        aria-label={`Move ${c.name} down`}
+                      >
+                        ↓
+                      </button>
+                    </div>
+                    <button type="button" className={`${styles.btnDanger} ${styles.btnSm}`} onClick={() => removeColor(i)}>
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </>
+            )}
+            <button type="button" className={`${styles.btnGhost} ${styles.btnSm}`} onClick={addColor}>
+              + Add {colors.length ? "colour" : "another colour"}
+            </button>
+          </section>
+
+          <section className={styles.card}>
             <h2>Design options (optional)</h2>
             <p className={styles.muted} style={{ marginBottom: 12 }}>
               Use when one product comes in several back prints. Each option can have its own back photo below.
@@ -171,49 +305,39 @@ export function ProductEditor({ initial, categories, isNew }: { initial: Product
             <p className={styles.muted}>
               <strong>Cut-out</strong> = transparent PNG of the garment alone (used on cards, the product stage and the home page).{" "}
               <strong>Photo</strong> = the full image with background (used for close-ups and lookbook). Upload at least a front and a back
-              cut-out.
+              cut-out{colors.length > 0 ? " for each colour" : ""}.
             </p>
-            {p.images.map((im, i) => (
-              <div key={i} className={styles.imgRow}>
-                <UploadField label="Cut-out" value={im.cutout} onChange={(u) => setImg(i, { cutout: u })} />
-                <UploadField label="Photo" value={im.src} onChange={(u) => setImg(i, { src: u })} />
-                <div className={styles.stack}>
-                  <label className={styles.field}>
-                    <span>Shows</span>
-                    <select value={im.kind} onChange={(e) => setImg(i, { kind: e.target.value as ImageKind })}>
-                      {Object.entries(KIND_LABEL).map(([k, l]) => (
-                        <option key={k} value={k}>
-                          {l}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {variants.length > 0 && (
-                    <label className={styles.field}>
-                      <span>For design option</span>
-                      <select value={im.variant ?? ""} onChange={(e) => setImg(i, { variant: e.target.value || undefined })}>
-                        <option value="">All</option>
-                        {variants.map((v) => (
-                          <option key={v.id || v.label} value={v.id}>
-                            {v.label || v.id}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                </div>
-                <label className={styles.field}>
-                  <span>Alt text</span>
-                  <textarea rows={3} value={im.alt} onChange={(e) => setImg(i, { alt: e.target.value })} placeholder="Describe the photo for screen readers" />
-                </label>
-                <button type="button" className={`${styles.btnDanger} ${styles.btnSm}`} onClick={() => set({ images: p.images.filter((_, j) => j !== i) })}>
-                  Remove
-                </button>
-              </div>
-            ))}
+            {colors.length > 0 ? (
+              <>
+                {colors.map((c) => (
+                  <div key={c.id} className={styles.colorGroup}>
+                    <h3>
+                      <span className={styles.swatch} style={{ background: c.hex }} />
+                      {c.name || "New colour"} photos
+                    </h3>
+                    {photoRows(c.id)}
+                    <button
+                      type="button"
+                      className={`${styles.btnGhost} ${styles.btnSm}`}
+                      onClick={() => set({ images: [...p.images, { kind: p.images.some((im) => im.color === c.id) ? "back" : "front", alt: "", color: c.id }] })}
+                    >
+                      + Add {c.name || "colour"} photo
+                    </button>
+                  </div>
+                ))}
+                {p.images.some((im) => !im.color) && (
+                  <div className={styles.colorGroup}>
+                    <h3>Shared by every colour</h3>
+                    {photoRows(undefined)}
+                  </div>
+                )}
+              </>
+            ) : (
+              photoRows(undefined)
+            )}
             <div style={{ marginTop: 12 }}>
               <button type="button" className={`${styles.btnGhost} ${styles.btnSm}`} onClick={() => set({ images: [...p.images, { kind: "detail-back", alt: "" }] })}>
-                + Add photo
+                {colors.length > 0 ? "+ Add photo for every colour" : "+ Add photo"}
               </button>
             </div>
           </section>
@@ -285,16 +409,6 @@ export function ProductEditor({ initial, categories, isNew }: { initial: Product
                 </select>
                 <small>Daydream = light concrete look, Nightshift = dark blue look.</small>
               </label>
-              <div className={styles.colorRow}>
-                <label className={styles.field}>
-                  <span>Colour name</span>
-                  <input value={p.colorName} onChange={(e) => set({ colorName: e.target.value })} placeholder="Black" />
-                </label>
-                <label className={styles.field}>
-                  <span>&nbsp;</span>
-                  <input type="color" value={p.colorHex} onChange={(e) => set({ colorHex: e.target.value })} aria-label="Colour" />
-                </label>
-              </div>
             </div>
           </section>
         </div>

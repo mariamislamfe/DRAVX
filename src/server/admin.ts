@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { mutate } from "./db";
 import { MIN_PASSWORD, checkPassword, endSession, hashPassword, requireAdmin, startSession } from "./auth";
-import { SIZES, WORLD_IDS, type ImageKind, type Product, type Size } from "@/data/products";
+import { SIZES, WORLD_IDS, type ImageKind, type Product, type ProductColor, type Size } from "@/data/products";
 import {
   DEFAULT_BRAND,
   ORDER_STATUSES,
@@ -158,6 +158,16 @@ export async function saveProduct(input: Product & { originalSlug?: string }): P
     .filter((v) => v.id && v.label);
   const variantIds = new Set(variants.map((v) => v.id));
 
+  const hex = (h: unknown, fallback: string) => (typeof h === "string" && /^#[0-9a-f]{6}$/i.test(h) ? h : fallback);
+  const colors: ProductColor[] = [];
+  for (const c of Array.isArray(input.colors) ? input.colors.slice(0, 30) : []) {
+    const cname = str(c?.name, 60);
+    const id = slugify(str(c?.id) || cname);
+    if (!cname || !id || colors.some((x) => x.id === id)) continue;
+    colors.push({ id, name: cname, hex: hex(c.hex, "#111111") });
+  }
+  const colorIds = new Set(colors.map((c) => c.id));
+
   const product: Product = {
     slug,
     categoryId: str(input.categoryId, 60),
@@ -166,8 +176,10 @@ export async function saveProduct(input: Product & { originalSlug?: string }): P
     shortName: str(input.shortName, 60) || name,
     world: WORLD_IDS.includes(input.world) ? input.world : "nightshift",
     price,
-    colorName: str(input.colorName, 60),
-    colorHex: /^#[0-9a-f]{6}$/i.test(input.colorHex) ? input.colorHex : "#111111",
+    // the first colour is the default the rest of the store shows
+    colorName: colors[0]?.name ?? str(input.colorName, 60),
+    colorHex: colors[0]?.hex ?? hex(input.colorHex, "#111111"),
+    colors: colors.length ? colors : undefined,
     tagline: str(input.tagline, 200),
     description: str(input.description, 3000),
     story: str(input.story, 2000),
@@ -184,6 +196,7 @@ export async function saveProduct(input: Product & { originalSlug?: string }): P
         src: imgUrl(im.src),
         cutout: imgUrl(im.cutout),
         variant: im.variant && variantIds.has(im.variant) ? im.variant : undefined,
+        color: im.color && colorIds.has(im.color) ? im.color : undefined,
       }))
       .slice(0, 40),
     badge: str(input.badge, 40) || undefined,

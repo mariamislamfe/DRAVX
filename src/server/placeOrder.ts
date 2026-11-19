@@ -150,7 +150,10 @@ export async function placeOrder(input: {
         }
         const variant = l.variant ? p.printVariants?.find((v) => v.id === l.variant) : undefined;
         if (l.variant && !variant) return { ok: false, error: `That print for ${p.name} is no longer available.` };
-        const img = getImage(p, "back", variant?.id);
+        // bags from before the product had colours carry none: use the default
+        const color = p.colors?.length ? (l.color ? p.colors.find((c) => c.id === l.color) : p.colors[0]) : undefined;
+        if (p.colors?.length && !color) return { ok: false, error: `That colour of ${p.name} is no longer available.` };
+        const img = getImage(p, "back", variant?.id, color?.id);
         items.push({
           kind: "product",
           slug: p.slug,
@@ -158,7 +161,8 @@ export async function placeOrder(input: {
           size: l.size,
           variant: variant?.id,
           variantLabel: variant?.label,
-          colorName: p.colorName,
+          color: color?.id,
+          colorName: color?.name ?? p.colorName,
           qty,
           unitPrice: p.price,
           image: img.cutout ?? img.src,

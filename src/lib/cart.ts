@@ -1,4 +1,4 @@
-import type { Product } from "@/data/products";
+import { getColor, type Product } from "@/data/products";
 import { shippingFor, templatePrice, type Catalog } from "@/data/schema";
 import type { CartLine } from "./store";
 
@@ -40,10 +40,10 @@ export function resolveLines(lines: CartLine[], catalog: Catalog): ResolvedLine[
         ...l,
         product,
         name: product.name,
-        meta: `${product.colorName} · Size ${l.size}${variant ? ` · ${variant.label}` : ""}`,
+        meta: `${getColor(product, l.color).name} · Size ${l.size}${variant ? ` · ${variant.label}` : ""}`,
         unitPrice: product.price,
         lineTotal: product.price * l.qty,
-        href: `/product/${product.slug}`,
+        href: `/product/${product.slug}${l.color ? `?color=${encodeURIComponent(l.color)}` : ""}`,
       },
     ];
   });

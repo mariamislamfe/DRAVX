@@ -8,6 +8,8 @@ type Props = {
   product: Product;
   kind: ImageKind;
   variant?: string;
+  /** Colour id, for products sold in several colours. */
+  color?: string;
   className?: string;
   priority?: boolean;
   sizes?: string;
@@ -21,10 +23,10 @@ type Props = {
  *  - details     → close-up crop of the studio image
  *  - model/campaign → staged cut-out, labelled until the shoot exists
  */
-export function ProductVisual({ product, kind, variant, className = "", priority, sizes = "(max-width: 900px) 100vw, 50vw", tag = true }: Props) {
+export function ProductVisual({ product, kind, variant, color, className = "", priority, sizes = "(max-width: 900px) 100vw, 50vw", tag = true }: Props) {
   const scene = kind === "model" || kind === "campaign";
-  const img = getImage(product, kind, variant);
-  const backImg = getImage(product, "back", variant);
+  const img = getImage(product, kind, variant, color);
+  const backImg = getImage(product, "back", variant, color);
 
   if (!hasPhotos(product)) {
     return (

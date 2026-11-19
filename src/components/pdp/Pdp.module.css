@@ -232,6 +232,29 @@
   border-radius: 50%;
   box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--fg);
 }
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.swatchPick {
+  cursor: pointer;
+  border-radius: 50%;
+}
+.swatchPick .swatch {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--line);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+.swatchPick:hover .swatch {
+  transform: scale(1.06);
+}
+.swatchPick[data-on] .swatch {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--fg);
+}
+.swatchPick:has(input:focus-visible) .swatch {
+  outline: 2px solid var(--fg);
+  outline-offset: 5px;
+}
 
 .variants {
   display: grid;

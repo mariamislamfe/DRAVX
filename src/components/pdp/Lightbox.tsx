@@ -15,12 +15,14 @@ import styles from "./Pdp.module.css";
 export function Lightbox({
   product,
   variant,
+  color,
   index,
   onClose,
   onIndex,
 }: {
   product: Product;
   variant?: string;
+  color?: string;
   index: number | null;
   onClose: () => void;
   onIndex: (i: number) => void;
@@ -87,7 +89,7 @@ export function Lightbox({
         style={{ touchAction: zoomed ? "none" : "auto" }}
       >
         <div ref={img} className={styles.lbImg}>
-          {open && <ProductVisual product={product} kind={g.kind} variant={variant} sizes="100vw" />}
+          {open && <ProductVisual product={product} kind={g.kind} variant={variant} color={color} sizes="100vw" />}
         </div>
       </div>
       <div className={styles.lbBar}>

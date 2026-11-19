@@ -34,7 +34,7 @@ export function CartLineItem({ line, large }: { line: ResolvedLine; large?: bool
         aria-label={line.name}
       >
         {p ? (
-          <ProductVisual product={p} kind="back" variant={line.variant} tag={false} sizes="120px" />
+          <ProductVisual product={p} kind="back" variant={line.variant} color={line.color} tag={false} sizes="120px" />
         ) : (
           <div style={{ width: "100%", height: "100%", background: "var(--paper-2)" }}>
             {/* eslint-disable-next-line @next/next/no-img-element -- user upload, already sized */}
