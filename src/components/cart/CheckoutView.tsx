@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useCart, useHydrated } from "@/lib/store";
 import { cartTotals } from "@/lib/cart";
-import { useCatalog } from "@/lib/catalog";
+import { useCatalog, useText } from "@/lib/catalog";
+import { Rich } from "@/components/brand/Rich";
+import { track } from "@/lib/pixel";
 import { formatPrice } from "@/config/brand";
 import { checkDiscount, placeOrder, type DiscountCheck } from "@/server/placeOrder";
-import { PAYMENT_LABEL, PAYMENT_METHODS, type PaymentMethod } from "@/data/schema";
+import { PAYMENT_METHODS, type PaymentMethod } from "@/data/schema";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import styles from "./Checkout.module.css";
 
@@ -20,6 +22,9 @@ export function CheckoutView() {
   const lines = useCart((s) => s.lines);
   const clear = useCart((s) => s.clear);
   const catalog = useCatalog();
+  const t = useText();
+  const PAYMENT_LABEL = Object.fromEntries(PAYMENT_METHODS.map((m) => [m, t(`pay.${m}`)])) as Record<PaymentMethod, string>;
+  const currency = catalog.settings.brand.currency;
   const { shippingZones: zones, payments } = catalog.settings;
   const methods = PAYMENT_METHODS.filter((m) => payments?.[m]?.enabled);
   const [zoneId, setZoneId] = useState("");
@@ -36,6 +41,14 @@ export function CheckoutView() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ number: string; payment: PaymentMethod; total: number } | null>(null);
 
+  // Meta Pixel: once per visit to checkout, when the bag has something in it
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current || !hydrated || !resolved.length) return;
+    started.current = true;
+    track("InitiateCheckout", { value: subtotal, currency, num_items: count, content_ids: resolved.map((l) => l.slug).filter(Boolean) });
+  }, [hydrated, resolved, subtotal, currency, count]);
+
   const apply = () => {
     if (!code.trim()) return;
     startCheck(async () => setPromo(await checkDiscount(code, subtotal, baseShipping)));
@@ -49,6 +62,7 @@ export function CheckoutView() {
     start(async () => {
       const res = await placeOrder({ customer, lines, zoneId: zoneId || undefined, payment, discountCode: applied?.code });
       if (res.ok) {
+        track("Purchase", { value: total, currency, num_items: count, content_ids: resolved.map((l) => l.slug).filter(Boolean), content_type: "product" }, res.number);
         setDone({ number: res.number, payment, total });
         clear();
         window.scrollTo({ top: 0 });
@@ -61,16 +75,16 @@ export function CheckoutView() {
       <div className={`${styles.page} on-paper`}>
         <div className={`${styles.inner} wrap`}>
           <div role="status">
-            <p className="mono">Order {done.number}</p>
+            <p className="mono">{t("co.doneOrder", { number: done.number })}</p>
             <h1 className="display">
-              It&apos;s <em className="serif">yours.</em>
+              <Rich text={t("co.doneTitle")} />
             </h1>
             <p className={styles.lead}>
-              We got your order. We&apos;ll call you to confirm before it ships.{" "}
+              {t("co.doneLead")}{" "}
               {done.payment === "cod"
-                ? "You pay in cash when it arrives."
-                : `Send ${formatPrice(done.total)} by ${PAYMENT_LABEL[done.payment].toLowerCase()} and put your order number in the transfer note.`}{" "}
-              Keep your order number: <strong>{done.number}</strong>.
+                ? t("co.donePayCod")
+                : t("co.donePayOther", { total: formatPrice(done.total), method: PAYMENT_LABEL[done.payment].toLowerCase() })}{" "}
+              {t("co.doneKeep")} <strong>{done.number}</strong>.
             </p>
             {done.payment !== "cod" && payments?.[done.payment]?.details && (
               <p className={styles.pay} style={{ whiteSpace: "pre-line", marginBottom: 30 }}>
@@ -78,7 +92,7 @@ export function CheckoutView() {
               </p>
             )}
             <TransitionLink href="/shop" className="btn btn--ink">
-              Keep shopping →
+              {t("co.doneShop")}
             </TransitionLink>
           </div>
         </div>
@@ -96,35 +110,35 @@ export function CheckoutView() {
 
           <form className={styles.form} onSubmit={submit} noValidate={false}>
             <fieldset disabled={pending || empty}>
-              <legend className="mono">01 · Contact</legend>
+              <legend className="mono">{t("co.contact")}</legend>
               <label>
-                <span className="mono">Full name</span>
+                <span className="mono">{t("co.name")}</span>
                 <input name="name" required minLength={2} autoComplete="name" />
               </label>
               <div className={styles.row}>
                 <label>
-                  <span className="mono">Phone</span>
+                  <span className="mono">{t("co.phone")}</span>
                   <input name="phone" required type="tel" autoComplete="tel" inputMode="tel" pattern="\+?[\d\s\(\)\-]{7,}" />
                 </label>
                 <label>
-                  <span className="mono">Email (optional)</span>
+                  <span className="mono">{t("co.email")}</span>
                   <input name="email" type="email" autoComplete="email" />
                 </label>
               </div>
             </fieldset>
 
             <fieldset disabled={pending || empty}>
-              <legend className="mono">02 · Delivery</legend>
+              <legend className="mono">{t("co.delivery")}</legend>
               {zones?.length > 0 && (
                 <label>
-                  <span className="mono">Delivery area</span>
+                  <span className="mono">{t("co.area")}</span>
                   <select name="zone" required value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
                     <option value="" disabled>
-                      Choose…
+                      {t("co.choose")}
                     </option>
                     {zones.map((z) => (
                       <option key={z.id} value={z.id}>
-                        {z.name} · {z.fee ? formatPrice(z.fee) : "Free"}
+                        {z.name} · {z.fee ? formatPrice(z.fee) : t("co.free")}
                         {z.days ? ` · ${z.days}` : ""}
                       </option>
                     ))}
@@ -132,25 +146,25 @@ export function CheckoutView() {
                 </label>
               )}
               <label>
-                <span className="mono">{zones?.length ? "City / district" : "City"}</span>
+                <span className="mono">{zones?.length ? t("co.cityDistrict") : t("co.city")}</span>
                 <input name="city" required autoComplete="address-level2" />
               </label>
               <label>
-                <span className="mono">Address</span>
+                <span className="mono">{t("co.address")}</span>
                 <textarea name="address" required minLength={6} rows={3} autoComplete="street-address" />
               </label>
               <label>
-                <span className="mono">Notes (optional)</span>
+                <span className="mono">{t("co.notes")}</span>
                 <textarea name="notes" rows={2} />
               </label>
             </fieldset>
 
             <fieldset disabled={pending || empty}>
-              <legend className="mono">03 · Payment</legend>
+              <legend className="mono">{t("co.payment")}</legend>
               {methods.length <= 1 ? (
                 <p className={styles.pay} style={{ whiteSpace: "pre-line" }}>
                   <span aria-hidden="true">✳</span>{" "}
-                  {payment === "cod" ? "Cash on delivery. Pay when your order arrives." : `${PAYMENT_LABEL[payment]}. ${payments[payment].details}`}
+                  {payment === "cod" ? t("co.codLine") : `${PAYMENT_LABEL[payment]}. ${payments[payment].details}`}
                 </p>
               ) : (
                 <div className={styles.methods}>
@@ -159,7 +173,7 @@ export function CheckoutView() {
                       <input type="radio" name="payment" value={m} checked={payment === m} onChange={() => setPayment(m)} />
                       <span>
                         <strong>{PAYMENT_LABEL[m]}</strong>
-                        <small>{m === "cod" ? "Pay when your order arrives." : payments[m].details}</small>
+                        <small>{m === "cod" ? t("co.codShort") : payments[m].details}</small>
                       </span>
                     </label>
                   ))}
@@ -174,20 +188,20 @@ export function CheckoutView() {
             )}
 
             <button type="submit" className="btn btn--ink" disabled={pending || !hydrated || empty}>
-              {pending ? "Placing order…" : `Place order · ${hydrated ? formatPrice(total) : ""}`}
+              {pending ? t("co.placing") : t("co.place", { price: hydrated ? formatPrice(total) : "" })}
             </button>
           </form>
 
           <p className={styles.back}>
             <TransitionLink href="/cart" className="mono link-u">
-              ← Back to bag
+              {t("co.back")}
             </TransitionLink>
           </p>
         </div>
 
         <aside className={styles.summary} aria-label="Order summary">
-          <p className="mono">Order summary ({count})</p>
-          {empty && <p>Your bag is empty.</p>}
+          <p className="mono">{t("co.summary", { n: count })}</p>
+          {empty && <p>{t("co.empty")}</p>}
           <ul>
             {resolved.map((l) => (
               <li key={l.key}>
@@ -202,18 +216,18 @@ export function CheckoutView() {
             ))}
           </ul>
           <div className={styles.sub}>
-            <span className="mono">Subtotal</span>
+            <span className="mono">{t("co.subtotal")}</span>
             <span>{formatPrice(subtotal)}</span>
           </div>
           {off > 0 && (
             <div className={styles.sub}>
-              <span className="mono">Discount · {applied!.code}</span>
+              <span className="mono">{t("co.discount")} · {applied!.code}</span>
               <span>−{formatPrice(off)}</span>
             </div>
           )}
           <div className={styles.sub}>
-            <span className="mono">Shipping</span>
-            <span>{zones?.length && !zoneId && !applied?.freeShipping && subtotal > 0 ? "Choose area" : shipping === 0 ? "Free" : formatPrice(shipping)}</span>
+            <span className="mono">{t("co.shipping")}</span>
+            <span>{zones?.length && !zoneId && !applied?.freeShipping && subtotal > 0 ? t("co.chooseArea") : shipping === 0 ? t("co.free") : formatPrice(shipping)}</span>
           </div>
           <div className={styles.promo}>
             <input
@@ -228,8 +242,8 @@ export function CheckoutView() {
                   apply();
                 }
               }}
-              placeholder="Discount code"
-              aria-label="Discount code"
+              placeholder={t("co.code")}
+              aria-label={t("co.code")}
               autoComplete="off"
               disabled={!!applied}
             />
@@ -242,21 +256,21 @@ export function CheckoutView() {
                   setCode("");
                 }}
               >
-                Remove
+                {t("co.remove")}
               </button>
             ) : (
               <button type="button" className="mono" onClick={apply} disabled={checking || !code.trim() || empty}>
-                {checking ? "…" : "Apply"}
+                {checking ? "…" : t("co.apply")}
               </button>
             )}
           </div>
           {promo && (
             <p className={styles.promoNote} role="status">
-              {promo.ok ? `✳ ${promo.label} applied` : promo.error}
+              {promo.ok ? t("co.applied", { label: promo.label }) : promo.error}
             </p>
           )}
           <div className={styles.total}>
-            <span className="mono">Total</span>
+            <span className="mono">{t("co.total")}</span>
             <span className="display">{formatPrice(total)}</span>
           </div>
         </aside>

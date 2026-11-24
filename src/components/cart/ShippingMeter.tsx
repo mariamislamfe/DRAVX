@@ -1,11 +1,12 @@
 "use client";
 
 import { formatPrice } from "@/config/brand";
-import { useCatalog } from "@/lib/catalog";
+import { useCatalog, useText } from "@/lib/catalog";
 import styles from "./Cart.module.css";
 
 export function ShippingMeter({ subtotal }: { subtotal: number }) {
   const threshold = useCatalog().settings.freeShippingThreshold;
+  const t = useText();
   if (threshold <= 0) return null; // free shipping is switched off
   const remaining = Math.max(0, threshold - subtotal);
   const pct = threshold > 0 ? Math.min(100, (subtotal / threshold) * 100) : 100;
@@ -13,11 +14,9 @@ export function ShippingMeter({ subtotal }: { subtotal: number }) {
     <div className={styles.meter}>
       <p className="mono">
         {remaining > 0 ? (
-          <>
-            {formatPrice(remaining)} away from free shipping
-          </>
+          <>{t("meter.away", { price: formatPrice(remaining) })}</>
         ) : (
-          <>Free shipping unlocked ✳</>
+          <>{t("meter.unlocked")}</>
         )}
       </p>
       <div

@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { saveSettings } from "@/server/admin";
-import type { BrandInfo, Settings } from "@/data/schema";
+import { MAX_PIXELS, type BrandInfo, type Settings } from "@/data/schema";
 import styles from "./Admin.module.css";
 
 type Field = { key: keyof BrandInfo; label: string; placeholder?: string; hint?: string; long?: boolean; type?: string };
@@ -63,6 +63,22 @@ export function SettingsForm({ settings: s }: { settings: Settings }) {
         <p className={styles.muted} style={{ marginTop: 10, fontSize: "0.85rem" }}>
           Shipping fees and policies are under Shipping; payment methods under Payments.
         </p>
+      </section>
+
+      <section className={styles.card}>
+        <h2>Meta Pixel</h2>
+        <p className={styles.muted} style={{ marginBottom: 12 }}>
+          Pixel IDs from Meta Events Manager (digits only). The store sends PageView, AddToCart, InitiateCheckout and Purchase. Leave all
+          empty for no tracking.
+        </p>
+        <div className={styles.grid2}>
+          {Array.from({ length: MAX_PIXELS }, (_, i) => (
+            <label key={i} className={styles.field}>
+              <span>Pixel ID {i + 1}</span>
+              <input name="metaPixel" inputMode="numeric" pattern="\d{6,20}" defaultValue={s.metaPixels?.[i] ?? ""} placeholder="123456789012345" />
+            </label>
+          ))}
+        </div>
       </section>
 
       <div className={styles.saveBar}>

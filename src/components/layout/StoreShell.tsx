@@ -7,6 +7,8 @@ import { Footer } from "@/components/layout/Footer";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { CatalogProvider } from "@/lib/catalog";
 import { getCatalog } from "@/server/db";
+import { Suspense } from "react";
+import { MetaPixel } from "@/components/layout/MetaPixel";
 
 /** Storefront chrome. Loads the live catalog once per request. */
 export async function StoreShell({ children }: { children: React.ReactNode }) {
@@ -18,6 +20,11 @@ export async function StoreShell({ children }: { children: React.ReactNode }) {
       </a>
       <TransitionProvider>
         <SmoothScroll />
+        {catalog.settings.metaPixels?.length > 0 && (
+          <Suspense fallback={null}>
+            <MetaPixel ids={catalog.settings.metaPixels} />
+          </Suspense>
+        )}
         <Preloader />
         <Header />
         <MobileMenu />

@@ -8,12 +8,14 @@ import { formatPrice } from "@/config/brand";
 import { ProductVisual } from "@/components/product/ProductVisual";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import { QtyStepper } from "./QtyStepper";
+import { useText } from "@/lib/catalog";
 import styles from "./Cart.module.css";
 
 export function CartLineItem({ line, large }: { line: ResolvedLine; large?: boolean }) {
   const ref = useRef<HTMLLIElement>(null);
   const setQty = useCart((s) => s.setQty);
   const remove = useCart((s) => s.remove);
+  const t = useText();
   const p = line.product;
 
   const onRemove = () => {
@@ -51,7 +53,7 @@ export function CartLineItem({ line, large }: { line: ResolvedLine; large?: bool
         <div className={styles.lineActions}>
           <QtyStepper compact value={line.qty} onChange={(q) => setQty(line.key, q)} label={`Quantity for ${line.name}`} />
           <button type="button" className={`${styles.remove} mono link-u`} onClick={onRemove}>
-            Remove
+            {t("bag.remove")}
           </button>
         </div>
       </div>

@@ -5,23 +5,24 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { gsap, ScrollTrigger, splitChars } from "@/lib/gsap";
 import { useOnReady } from "@/lib/useReady";
 import { type World } from "@/data/products";
-import { useCatalog } from "@/lib/catalog";
+import { useCatalog, useText, worldLabel } from "@/lib/catalog";
 import { ProductCard } from "@/components/product/ProductCard";
 import styles from "./Shop.module.css";
 
 type Filter = "all" | World;
 type Sort = "featured" | "price-asc" | "price-desc" | "newest";
 
+/** `label` is a site-text key. */
 const FILTERS: { id: Filter; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "daydream", label: "Daydream" },
-  { id: "nightshift", label: "Nightshift" },
+  { id: "all", label: "shop.all" },
+  { id: "daydream", label: "world.daydream.label" },
+  { id: "nightshift", label: "world.nightshift.label" },
 ];
 const SORTS: { id: Sort; label: string }[] = [
-  { id: "featured", label: "Featured" },
-  { id: "newest", label: "Newest" },
-  { id: "price-asc", label: "Price: low → high" },
-  { id: "price-desc", label: "Price: high → low" },
+  { id: "featured", label: "shop.featured" },
+  { id: "newest", label: "shop.newest" },
+  { id: "price-asc", label: "shop.priceAsc" },
+  { id: "price-desc", label: "shop.priceDesc" },
 ];
 
 export function ShopView() {
@@ -33,6 +34,7 @@ export function ShopView() {
   const tabs = useRef<Record<string, HTMLButtonElement | null>>({});
   const grid = useRef<HTMLDivElement>(null);
   const { products: all, categories } = useCatalog();
+  const t = useText();
   const cats = categories.filter((c) => all.some((p) => p.categoryId === c.id));
   const cat = cats.some((c) => c.id === params.get("cat")) ? params.get("cat")! : "all";
   const products = cat === "all" ? all : all.filter((p) => p.categoryId === cat);
@@ -103,7 +105,7 @@ export function ShopView() {
   return (
     <div ref={root} className={styles.page} data-tone={filter}>
       <header className={`${styles.head} wrap`}>
-        <h1 className={`${styles.title} display`}>The drop</h1>
+        <h1 className={`${styles.title} display`}>{t("shop.title")}</h1>
         <span className={`${styles.count} display`} data-intro>
           ({String(list.length).padStart(2, "0")})
         </span>
@@ -124,16 +126,16 @@ export function ShopView() {
               className={`${styles.tab} mono`}
               onClick={() => update({ world: f.id })}
             >
-              {f.label}
+              {t(f.label)}
               <sup>{f.id === "all" ? products.length : products.filter((p) => p.world === f.id).length}</sup>
             </button>
           ))}
         </div>
         {cats.length > 1 && (
           <label className={`${styles.sort} mono`}>
-            <span>Category</span>
+            <span>{t("shop.category")}</span>
             <select value={cat} onChange={(e) => update({ cat: e.target.value })}>
-              <option value="all">All</option>
+              <option value="all">{t("shop.all")}</option>
               {cats.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -143,11 +145,11 @@ export function ShopView() {
           </label>
         )}
         <label className={`${styles.sort} mono`}>
-          <span>Sort</span>
+          <span>{t("shop.sort")}</span>
           <select value={sort} onChange={(e) => update({ sort: e.target.value as Sort })}>
             {SORTS.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.label}
+                {t(s.label)}
               </option>
             ))}
           </select>
@@ -157,9 +159,9 @@ export function ShopView() {
       <div ref={grid} className={`${styles.grid} wrap`} aria-live="polite">
         {list.length === 0 ? (
           <div className={styles.empty} data-cell>
-            <p className="display">Nothing here yet.</p>
+            <p className="display">{t("shop.empty")}</p>
             <button type="button" className="btn" onClick={() => update({ world: "all", cat: "all" })}>
-              Show everything
+              {t("shop.showAll")}
             </button>
           </div>
         ) : (

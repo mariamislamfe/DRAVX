@@ -25,7 +25,9 @@ Open `http://localhost:3000/admin` (on the live site: `https://<your-domain>/adm
 | Products | Create, edit, hide or delete products: price, sizes, sold-out sizes, copy, design options and photos (uploaded) |
 | Categories | Add categories (e.g. Sweatpants). The shop shows a Category filter once more than one category has products. Each category has its own editable size guide (measurements × sizes, in cm), shown on its product pages |
 | Customizer | The blank garments customers can design on: name, base price + per-side print price, sizes, print area (drag on the mockup), print width in cm, and colours. Each colour can have its own front/back photo of the blank; a colour without one gets the white mockup tinted |
-| Settings | Brand name, tagline, description, website address, currency, email, phone, WhatsApp, Instagram/TikTok/Facebook, shipping and returns text, shipping fee, free-shipping threshold, customizer on/off. Changing the currency changes the symbol only, so re-enter prices after switching |
+| Homepage | The two hero products (left/right half), the order of the homepage sections and which are shown, the two "turning" hoodies and their notes, and any number of full-width **video sections** (video upload or link, optional phone video, cover image, logo, title, text, button, products shown on top, darkness, height). A hero product that's later hidden, deleted or renamed is replaced automatically, so the site never breaks |
+| Site text | Every word on the storefront (menu, home, shop, product page, bag, checkout, footer, about, customizer, 404), grouped by page with search. `{placeholders}` are filled by the site; `*stars*` set words in the italic accent font. Only changed texts are stored |
+| Settings | Brand name, tagline, description, website address, currency, email, phone, WhatsApp, Instagram/TikTok/Facebook, shipping and returns text, shipping fee, free-shipping threshold, customizer on/off, Meta Pixel IDs (up to 5; the store then sends PageView, AddToCart, InitiateCheckout and Purchase with the order number as event ID). Changing the currency changes the symbol only, so re-enter prices after switching |
 
 ## Customizer (`/customize`)
 
@@ -39,7 +41,7 @@ Everything the dashboard edits (catalog, categories, customizer bases, orders, s
 1. Create a project at neon.tech (or add Neon from Vercel → Storage, which sets the variable for you).
 2. Set `DATABASE_URL` (Neon → Connect) and `ADMIN_PASSWORD` in your host's environment variables.
 
-The tables (`store` for everything the dashboard edits, `uploads` for photos and customer designs) are created automatically on the first request. The connection string is used only on the server. Writes use optimistic locking, so simultaneous orders don't overwrite each other. On Vercel a single upload is limited to about 4.5 MB.
+The tables (`store` for everything the dashboard edits, `uploads` for photos and customer designs) are created automatically on the first request. The connection string is used only on the server. Writes use optimistic locking, so simultaneous orders don't overwrite each other. On Vercel a single upload is limited to about 4.5 MB, so for homepage videos paste a link to the .mp4 (or upload a short compressed clip). Videos are capped at 15 MB with Neon and 80 MB with local files.
 
 **Local files (when `DATABASE_URL` is not set).** Data goes to `data/` (git-ignored): `store.json` + `uploads/`. Set `DATA_DIR` to put it elsewhere. Use this on a host with a persistent disk (a VPS, or Railway/Render with a volume), and back up the folder.
 

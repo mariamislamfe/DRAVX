@@ -6,38 +6,20 @@ import { useOnReady } from "@/lib/useReady";
 import { WORLDS } from "@/data/products";
 import { Garment } from "@/components/product/Garment";
 
-import { byWorld as pick, useCatalog } from "@/lib/catalog";
+import { byWorld as pick, useCatalog, useText, worldLabel } from "@/lib/catalog";
+import { Rich } from "@/components/brand/Rich";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import { Marquee } from "@/components/home/Marquee";
 import styles from "./About.module.css";
 
-const CHAPTERS = [
-  {
-    n: "01",
-    title: "The front whispers",
-    body: "A small mark on the chest. A single blue eye. Enough to recognise each other in a crowd, nothing that needs explaining.",
-  },
-  {
-    n: "02",
-    title: "The back is the point",
-    body: "Everything we actually want to say goes on the back: big, illustrated, impossible to miss. People read you as you leave.",
-  },
-  {
-    n: "03",
-    title: "Oversized, on purpose",
-    body: "Dropped shoulders, long body, room to move. The silhouette is a canvas first, and the canvas needs space.",
-  },
-  {
-    n: "04",
-    title: "Two worlds, one label",
-    body: "Daydream is crayon and chaos. Nightshift is electric blue at 2am. Different moods, same rule: quiet front, loud back.",
-  },
-];
 
 export function AboutView() {
   const root = useRef<HTMLDivElement>(null);
   const { products } = useCatalog();
   const byWorld = (w: "daydream" | "nightshift") => pick(products, w)!;
+  const t = useText();
+  const CHAPTERS = [1, 2, 3, 4].map((n) => ({ n: `0${n}`, title: t(`about.c${n}t`), body: t(`about.c${n}b`) }));
+  const night = products.length ? byWorld("nightshift") : undefined;
   const intro = useRef<gsap.core.Timeline | null>(null);
 
   useGSAP(
@@ -91,38 +73,38 @@ export function AboutView() {
       <section className={styles.hero} aria-labelledby="about-title">
         <h1 id="about-title" className={`${styles.heroTitle} display`}>
           <span className={`${styles.heroLine} mask`}>
-            <span>Front:</span>
+            <span><Rich text={t("about.l1")} /></span>
           </span>
           <span className={`${styles.heroLine} mask`}>
-            <span className="serif">quiet.</span>
+            <span><Rich text={t("about.l2")} /></span>
           </span>
           <span className={`${styles.heroLine} mask`}>
-            <span>Back:</span>
+            <span><Rich text={t("about.l3")} /></span>
           </span>
           <span className={`${styles.heroLine} ${styles.loud} mask`}>
-            <span>loud.</span>
+            <span><Rich text={t("about.l4")} /></span>
           </span>
         </h1>
         <div className={styles.heroFig} aria-hidden="true">
           <div className={styles.heroFigInner}>
             <div className={styles.face}>
-              <Garment product={byWorld("nightshift")} view="front" priority decorative />
+              {night && <Garment product={night} view="front" priority decorative />}
             </div>
             <div className={`${styles.face} ${styles.faceBack}`}>
-              <Garment product={byWorld("nightshift")} view="back" variant={byWorld("nightshift").printVariants?.at(-1)?.id} decorative />
+              {night && <Garment product={night} view="back" variant={night.printVariants?.at(-1)?.id} decorative />}
             </div>
           </div>
         </div>
         <p className={`${styles.heroNote} mono`} data-hero-fade>
-          Manifesto — scroll and it turns around
+          {t("about.note")}
         </p>
       </section>
 
-      <Marquee tone="orange" items={["Quiet front", "Loud back", "Seen leaving", "Two worlds", "One hood"]} />
+      <Marquee tone="orange" items={t("about.marquee").split(",").map((s) => s.trim()).filter(Boolean)} />
 
       <section className={`${styles.chapters} wrap`} aria-label="What we believe">
         <div className={styles.sticky}>
-          <p className="mono">What we believe</p>
+          <p className="mono">{t("about.believe")}</p>
           <div className={`${styles.bigNum} display`} aria-hidden="true">
             {CHAPTERS.map((c) => (
               <span key={c.n}>{c.n}</span>
@@ -132,7 +114,7 @@ export function AboutView() {
         <div className={styles.chapterList}>
           {CHAPTERS.map((c) => (
             <article key={c.n} className={styles.chapter}>
-              <span className="mono">{c.n} / 04</span>
+              <span className="mono">{c.n} / 0{CHAPTERS.length}</span>
               <h2 className="display">{c.title}</h2>
               <p>{c.body}</p>
             </article>
@@ -145,20 +127,20 @@ export function AboutView() {
           <div key={w} className={styles.world} data-world={w}>
             <div className={styles.worldCopy}>
               <span className="mono">
-                World {WORLDS[w].index}
+                {t("about.world", { index: WORLDS[w].index })}
               </span>
-              <h2 className="display">{WORLDS[w].label}</h2>
-              <p>{WORLDS[w].blurb}</p>
+              <h2 className="display">{worldLabel(t, w)}</h2>
+              <p>{t(`world.${w}.blurb`)}</p>
               <TransitionLink
                 href={`/shop?world=${w}`}
                 className="btn"
-                transition={{ label: WORLDS[w].label, tone: w === "daydream" ? "concrete" : "blue" }}
+                transition={{ label: worldLabel(t, w), tone: w === "daydream" ? "concrete" : "blue" }}
               >
-                Shop {WORLDS[w].label} <span className="arrow">→</span>
+                {t("about.shop", { world: worldLabel(t, w) })} <span className="arrow">→</span>
               </TransitionLink>
             </div>
             <div className={styles.worldFig} aria-hidden="true">
-              <Garment product={byWorld(w)} view="back" decorative />
+              {products.length > 0 && <Garment product={byWorld(w)} view="back" decorative />}
             </div>
           </div>
         ))}

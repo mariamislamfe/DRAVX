@@ -242,7 +242,8 @@ export function getImage(product: Product, kind: ImageKind, variant?: string, co
     return list.find((i) => i.variant && i.variant === v) ?? list.find((i) => !i.variant && (i.src || i.cutout)) ?? (v ? undefined : list[0]);
   };
   const any = (k: ImageKind) => of(k)[0] ?? product.images.find((i) => i.kind === k);
-  const first = product.images.find(forColor) ?? product.images[0];
+  // a product saved without photos still gets an (empty) slot, never undefined
+  const first = product.images.find(forColor) ?? product.images[0] ?? { kind, alt: product.name };
   if (kind === "detail-back") return pick("detail-back") ?? pick("back") ?? first;
   return pick(kind) ?? any(kind) ?? first;
 }
@@ -250,6 +251,14 @@ export function getImage(product: Product, kind: ImageKind, variant?: string, co
 /** Transparent garment for staged layouts. */
 export function getCutout(product: Product, view: "front" | "back", variant?: string, color?: string) {
   return getImage(product, view, variant, color).cutout;
+}
+
+/**
+ * A product chosen in the dashboard (hero, homepage sections). Falls back to
+ * the n-th product, then the first, when it was deleted, hidden or renamed.
+ */
+export function pickProduct(products: Product[], slug: string | undefined, fallback = 0): Product | undefined {
+  return products.find((p) => p.slug === slug) ?? products[fallback] ?? products[0];
 }
 
 /** The flagship product for a world, falling back to anything available. */

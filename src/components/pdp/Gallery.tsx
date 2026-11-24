@@ -4,14 +4,16 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { getImage, type ImageKind, type Product } from "@/data/products";
 import { ProductVisual } from "@/components/product/ProductVisual";
+import { useText } from "@/lib/catalog";
 import styles from "./Pdp.module.css";
 
+/** `label` is a site-text key (Dashboard → Site text → Product page). */
 export const GALLERY: { kind: ImageKind; label: string }[] = [
-  { kind: "front", label: "Front" },
-  { kind: "back", label: "Back" },
-  { kind: "detail-front", label: "Chest detail" },
-  { kind: "detail-back", label: "Print detail" },
-  { kind: "model", label: "Lookbook" },
+  { kind: "front", label: "gallery.front" },
+  { kind: "back", label: "gallery.back" },
+  { kind: "detail-front", label: "gallery.chest" },
+  { kind: "detail-back", label: "gallery.print" },
+  { kind: "model", label: "gallery.lookbook" },
 ];
 
 const isTurn = (k: ImageKind) => k === "front" || k === "back";
@@ -26,6 +28,7 @@ type Props = {
 };
 
 export function Gallery({ product, view, setView, variant, color, onZoom }: Props) {
+  const t = useText();
   const [shown, setShown] = useState<ImageKind>(view);
   const inner = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLButtonElement>(null);
@@ -137,7 +140,7 @@ export function Gallery({ product, view, setView, variant, color, onZoom }: Prop
             type="button"
             role="tab"
             aria-selected={view === g.kind}
-            aria-label={g.label}
+            aria-label={t(g.label)}
             className={styles.thumb}
             onClick={() => setView(g.kind)}
           >
@@ -154,7 +157,7 @@ export function Gallery({ product, view, setView, variant, color, onZoom }: Prop
             className={styles.stage}
             onClick={() => onZoom(shownIndex)}
             data-cursor="Zoom"
-            aria-label={`Zoom ${GALLERY[shownIndex].label.toLowerCase()} image`}
+            aria-label={`Zoom ${t(GALLERY[shownIndex].label).toLowerCase()} image`}
           >
             <div className={styles.stageMedia}>
               <div ref={inner} className={styles.stageInner}>
@@ -186,7 +189,7 @@ export function Gallery({ product, view, setView, variant, color, onZoom }: Prop
       <div className={styles.swipeWrap}>
         <div ref={swipe} className={styles.swipe} onScroll={onSwipe} aria-label="Product images, swipe for more" tabIndex={0}>
           {GALLERY.map((g, i) => (
-            <button key={g.kind} type="button" className={styles.slide} onClick={() => onZoom(i)} aria-label={`Zoom ${g.label.toLowerCase()} image`}>
+            <button key={g.kind} type="button" className={styles.slide} onClick={() => onZoom(i)} aria-label={`Zoom ${t(g.label).toLowerCase()} image`}>
               <ProductVisual product={product} kind={g.kind} variant={variant} color={color} priority={i === 0} sizes="100vw" />
             </button>
           ))}
@@ -195,7 +198,7 @@ export function Gallery({ product, view, setView, variant, color, onZoom }: Prop
           {GALLERY.map((g, i) => (
             <span key={g.kind} data-on={slide === i || undefined} />
           ))}
-          <span className={`${styles.slideLabel} mono`}>{GALLERY[slide]?.label}</span>
+          <span className={`${styles.slideLabel} mono`}>{GALLERY[slide] && t(GALLERY[slide].label)}</span>
         </div>
       </div>
     </div>

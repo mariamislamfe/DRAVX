@@ -5,11 +5,15 @@ import { UPLOAD_DIR } from "./db";
 import { neonEnabled, neonFileExists, neonReadFile, neonSaveFile } from "./neon";
 
 export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+/** Videos (dashboard only). The database backend keeps files in Postgres, so stay modest there. */
+export const maxVideoBytes = () => (neonEnabled() ? 15 : 80) * 1024 * 1024;
 
 const TYPES = {
   png: "image/png",
   jpg: "image/jpeg",
   webp: "image/webp",
+  mp4: "video/mp4",
+  webm: "video/webm",
 } as const;
 export type UploadExt = keyof typeof TYPES;
 
@@ -19,10 +23,14 @@ export function sniff(buf: Buffer): UploadExt | null {
   if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return "png";
   if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "jpg";
   if (buf.toString("ascii", 0, 4) === "RIFF" && buf.toString("ascii", 8, 12) === "WEBP") return "webp";
+  if (buf.toString("ascii", 4, 8) === "ftyp") return "mp4"; // ISO media (mp4 / mov / m4v)
+  if (buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3) return "webm";
   return null;
 }
 
-const NAME_RE = /^(?:[a-z]+-)?[0-9a-f-]{36}\.(png|jpg|webp)$/;
+export const isVideo = (ext: UploadExt) => ext === "mp4" || ext === "webm";
+
+const NAME_RE = /^(?:[a-z]+-)?[0-9a-f-]{36}\.(png|jpg|webp|mp4|webm)$/;
 
 export function isUploadUrl(url: unknown): url is string {
   return typeof url === "string" && url.startsWith("/uploads/") && NAME_RE.test(url.slice("/uploads/".length));
@@ -30,8 +38,10 @@ export function isUploadUrl(url: unknown): url is string {
 
 export async function saveUpload(buf: Buffer, prefix: "design" | "admin"): Promise<string> {
   const ext = sniff(buf);
-  if (!ext) throw new Error("Only PNG, JPG or WebP images are accepted.");
-  if (buf.length > MAX_UPLOAD_BYTES) throw new Error("File is larger than 15 MB.");
+  if (!ext || (isVideo(ext) && prefix !== "admin")) throw new Error("Only PNG, JPG or WebP images are accepted.");
+  if (isVideo(ext)) {
+    if (buf.length > maxVideoBytes()) throw new Error(`Video is larger than ${maxVideoBytes() / 1024 / 1024} MB. Compress it or paste a link instead.`);
+  } else if (buf.length > MAX_UPLOAD_BYTES) throw new Error("File is larger than 15 MB.");
   const name = `${prefix}-${randomUUID()}.${ext}`;
   if (neonEnabled()) {
     await neonSaveFile(name, TYPES[ext], buf);

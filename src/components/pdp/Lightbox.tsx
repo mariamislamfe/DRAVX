@@ -5,6 +5,7 @@ import { gsap } from "@/lib/gsap";
 import type { Product } from "@/data/products";
 import { ProductVisual } from "@/components/product/ProductVisual";
 import { GALLERY } from "./Gallery";
+import { useText } from "@/lib/catalog";
 import { lockScroll } from "@/components/motion/SmoothScroll";
 import styles from "./Pdp.module.css";
 
@@ -27,6 +28,7 @@ export function Lightbox({
   onClose: () => void;
   onIndex: (i: number) => void;
 }) {
+  const t = useText();
   const root = useRef<HTMLDivElement>(null);
   const img = useRef<HTMLDivElement>(null);
   const [zoomed, setZoomed] = useState(false);
@@ -75,6 +77,7 @@ export function Lightbox({
 
   const i = index ?? 0;
   const g = GALLERY[i];
+  const label = t(g.label);
 
   return (
     <div ref={root} className={styles.lightbox} role="dialog" aria-modal="true" aria-label="Image zoom" aria-hidden={!open} inert={!open} data-world={product.world}>
@@ -94,7 +97,7 @@ export function Lightbox({
       </div>
       <div className={styles.lbBar}>
         <span className="mono">
-          {String(i + 1).padStart(2, "0")} / {String(GALLERY.length).padStart(2, "0")} — {g.label}
+          {String(i + 1).padStart(2, "0")} / {String(GALLERY.length).padStart(2, "0")} — {label}
         </span>
         <div className={styles.lbNav}>
           <button type="button" className="mono" onClick={() => onIndex((i - 1 + GALLERY.length) % GALLERY.length)} aria-label="Previous image">

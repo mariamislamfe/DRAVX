@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { useUI } from "@/lib/store";
 import { Logo } from "@/components/brand/Logo";
+import { useText } from "@/lib/catalog";
 import styles from "./Preloader.module.css";
 
 const KEY = "dravx-intro-seen";
@@ -14,6 +15,7 @@ export function Preloader() {
   const root = useRef<HTMLDivElement>(null);
   const count = useRef<HTMLSpanElement>(null);
   const setPhase = useUI((s) => s.setPhase);
+  const t = useText();
 
   useEffect(() => {
     const el = root.current!;
@@ -89,8 +91,8 @@ export function Preloader() {
           <Logo variant="wordmark" className={styles.word2} decorative />
         </div>
         <div className={`${styles.words} mono`}>
-          <span className={styles.word}>Front: quiet</span>
-          <span className={styles.word}>Back: loud</span>
+          <span className={styles.word}>{t("preloader.word1")}</span>
+          <span className={styles.word}>{t("preloader.word2")}</span>
         </div>
         <span ref={count} className={`${styles.count} display`}>
           000

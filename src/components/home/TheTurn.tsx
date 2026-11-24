@@ -2,24 +2,14 @@
 
 import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
-import { WORLDS } from "@/data/products";
-import { byWorld, useCatalog } from "@/lib/catalog";
+import { WORLDS, type Product } from "@/data/products";
+import { DEFAULT_HOME } from "@/data/schema";
+import { pickProduct, useCatalog, useText, worldLabel } from "@/lib/catalog";
 import { formatPrice } from "@/config/brand";
 import { ProductVisual } from "@/components/product/ProductVisual";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import { productTransition } from "@/components/product/ProductCard";
 import styles from "./TheTurn.module.css";
-
-const NOTES: Record<string, { front: string[]; back: string[] }> = {
-  "rex-doodle-hoodie": {
-    front: ["Small ROARR chest graphic", "Kangaroo pocket", "Dropped shoulders"],
-    back: ["Full-back T-rex on a skateboard", "Hand-written notes: “Wild one”, “Super cool”"],
-  },
-  "third-eye-hoodie": {
-    front: ["Eye sigil chest logo, ~6 cm", "Black, oversized drape", "Metal-tipped drawcords"],
-    back: ["40 × 40 cm back print", "4 back designs to choose from"],
-  },
-};
 
 /**
  * Editorial showcase: a pinned stage where each hoodie physically turns
@@ -27,9 +17,19 @@ const NOTES: Record<string, { front: string[]; back: string[] }> = {
  */
 export function TheTurn() {
   const root = useRef<HTMLElement>(null);
-  const all = useCatalog().products;
-  // the turn choreography is built for exactly two hoodies: one per world
-  const products = [byWorld(all, "daydream")!, byWorld(all, "nightshift")!];
+  const { products: all, settings } = useCatalog();
+  const t = useText();
+  // the turn choreography is built for exactly two hoodies, picked in Dashboard → Homepage
+  const slots = settings.home?.turn?.length ? settings.home.turn : DEFAULT_HOME.turn;
+  const products = [0, 1].map((i) => pickProduct(all, slots[i]?.slug, i)!);
+  // call-outs from the dashboard; a product without any falls back to its details
+  const notes = (p: Product, i: number) => {
+    const s = slots[i]?.slug === p.slug ? slots[i] : undefined;
+    return {
+      front: s?.front.length ? s.front : p.details.slice(0, 3),
+      back: s?.back.length ? s.back : p.details.slice(3, 5),
+    };
+  };
 
   useGSAP(
     () => {
@@ -90,7 +90,7 @@ export function TheTurn() {
         <div className={styles.bgDay} aria-hidden="true" />
         <div className={styles.bgNight} aria-hidden="true" />
         <h2 id="turn-title" className={`${styles.kicker} mono`}>
-          The turn — editorial
+          {t("turn.kicker")}
         </h2>
         <div className={styles.progress} aria-hidden="true">
           <i />
@@ -101,7 +101,7 @@ export function TheTurn() {
             <div key={`${p.slug}-${i}`} className={styles.text} data-world={p.world}>
               <span className="mask">
                 <span data-t className="mono">
-                  {WORLDS[p.world].index} / {WORLDS[p.world].label}
+                  {WORLDS[p.world].index} / {worldLabel(t, p.world)}
                 </span>
               </span>
               <span className="mask">
@@ -117,7 +117,7 @@ export function TheTurn() {
               <span className="mask">
                 <span data-t>
                   <TransitionLink href={`/product/${p.slug}`} className={`${styles.cta} mono link-u`} transition={productTransition(p)}>
-                    Shop {p.shortName} — {formatPrice(p.price)} →
+                    {t("turn.cta", { name: p.shortName, price: formatPrice(p.price) })}
                   </TransitionLink>
                 </span>
               </span>
@@ -144,16 +144,16 @@ export function TheTurn() {
           {products.map((p, i) => (
             <div key={`${p.slug}-${i}`} className={styles.noteSet}>
               <ul className={styles.notesFront} aria-label={`${p.shortName} front details`}>
-                {NOTES[p.slug].front.map((n) => (
-                  <li key={n}>
-                    <span className="mono">Front</span> {n}
+                {notes(p, i).front.map((n, j) => (
+                  <li key={j}>
+                    <span className="mono">{t("turn.front")}</span> {n}
                   </li>
                 ))}
               </ul>
               <ul className={styles.notesBack} aria-label={`${p.shortName} back details`}>
-                {NOTES[p.slug].back.map((n) => (
-                  <li key={n}>
-                    <span className="mono">Back</span> {n}
+                {notes(p, i).back.map((n, j) => (
+                  <li key={j}>
+                    <span className="mono">{t("turn.back")}</span> {n}
                   </li>
                 ))}
               </ul>

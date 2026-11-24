@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/server/auth";
-import { MAX_UPLOAD_BYTES, saveUpload } from "@/server/uploads";
+import { MAX_UPLOAD_BYTES, maxVideoBytes, saveUpload } from "@/server/uploads";
 
 export const runtime = "nodejs";
 
@@ -11,7 +11,7 @@ export const runtime = "nodejs";
  */
 export async function POST(req: Request) {
   const len = Number(req.headers.get("content-length") ?? 0);
-  if (len > MAX_UPLOAD_BYTES + 64 * 1024) return NextResponse.json({ error: "File is larger than 15 MB." }, { status: 413 });
+  if (len > Math.max(MAX_UPLOAD_BYTES, maxVideoBytes()) + 64 * 1024) return NextResponse.json({ error: "File is too large." }, { status: 413 });
 
   let form: FormData;
   try {
@@ -22,8 +22,10 @@ export async function POST(req: Request) {
   const file = form.get("file");
   const scope = form.get("scope") === "admin" ? "admin" : "design";
   if (!(file instanceof File)) return NextResponse.json({ error: "No file." }, { status: 400 });
-  if (file.size > MAX_UPLOAD_BYTES) return NextResponse.json({ error: "File is larger than 15 MB." }, { status: 413 });
   if (scope === "admin" && !(await isAdmin())) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  // only the dashboard may send videos; their size is checked in saveUpload
+  if (file.size > (scope === "admin" ? Math.max(MAX_UPLOAD_BYTES, maxVideoBytes()) : MAX_UPLOAD_BYTES))
+    return NextResponse.json({ error: "File is too large." }, { status: 413 });
 
   try {
     const url = await saveUpload(Buffer.from(await file.arrayBuffer()), scope);

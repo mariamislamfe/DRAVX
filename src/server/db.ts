@@ -15,7 +15,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { SEED_PRODUCTS } from "@/data/products";
-import { DEFAULT_BRAND, DEFAULT_PAYMENTS, DEFAULT_SIZE_CHART, type Catalog, type CustomTemplate, type DB } from "@/data/schema";
+import { DEFAULT_BRAND, DEFAULT_HOME, DEFAULT_PAYMENTS, DEFAULT_SIZE_CHART, type Catalog, type CustomTemplate, type DB } from "@/data/schema";
 import { setCurrency } from "@/config/brand";
 import { neonCreate, neonRead, neonWrite, neonEnabled } from "./neon";
 
@@ -34,6 +34,9 @@ function seed(): DB {
       payments: structuredClone(DEFAULT_PAYMENTS),
       customizerEnabled: true,
       brand: { ...DEFAULT_BRAND },
+      home: structuredClone(DEFAULT_HOME),
+      text: {},
+      metaPixels: [],
     },
     categories: [
       {
@@ -142,6 +145,18 @@ function upgrade(db: DB): boolean {
     changed = true;
   } else if (Object.keys(DEFAULT_BRAND).some((k) => !(k in db.settings.brand))) {
     db.settings.brand = { ...DEFAULT_BRAND, ...db.settings.brand };
+    changed = true;
+  }
+  if (!db.settings.home) {
+    db.settings.home = structuredClone(DEFAULT_HOME);
+    changed = true;
+  }
+  if (!db.settings.text) {
+    db.settings.text = {};
+    changed = true;
+  }
+  if (!db.settings.metaPixels) {
+    db.settings.metaPixels = [];
     changed = true;
   }
   // the store sells in Egypt: move off the old USD default (once; Settings can change it after)

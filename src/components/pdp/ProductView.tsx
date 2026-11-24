@@ -5,7 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { gsap, useGSAP, splitChars } from "@/lib/gsap";
 import { useOnReady } from "@/lib/useReady";
 import { getColor, type ImageKind } from "@/data/products";
-import { findProduct, useCatalog } from "@/lib/catalog";
+import { findProduct, useCatalog, useText } from "@/lib/catalog";
+import { Rich } from "@/components/brand/Rich";
 import { ProductCard } from "@/components/product/ProductCard";
 import { NotifyTile } from "@/components/product/NotifyTile";
 import { ProductVisual } from "@/components/product/ProductVisual";
@@ -16,6 +17,7 @@ import styles from "./Pdp.module.css";
 
 export function ProductView({ slug }: { slug: string }) {
   const catalog = useCatalog();
+  const t = useText();
   const product = findProduct(catalog, slug)!;
   const params = useSearchParams();
   const initialVariant = product.printVariants?.find((v) => v.id === params.get("print"))?.id ?? product.printVariants?.[0]?.id;
@@ -80,7 +82,7 @@ export function ProductView({ slug }: { slug: string }) {
               <ProductVisual product={product} kind="detail-front" color={color} sizes="(max-width: 900px) 100vw, 40vw" />
             </div>
           </div>
-          <figcaption className="mono">Front detail — the quiet side</figcaption>
+          <figcaption className="mono">{t("pdp.frontDetail")}</figcaption>
         </figure>
         <figure className={`${styles.ed} ${styles.edB}`}>
           <div className={styles.edMedia} data-reveal>
@@ -88,14 +90,14 @@ export function ProductView({ slug }: { slug: string }) {
               <ProductVisual product={product} kind="detail-back" variant={variant} color={color} sizes="(max-width: 900px) 100vw, 50vw" />
             </div>
           </div>
-          <figcaption className="mono">Back detail — the loud side</figcaption>
+          <figcaption className="mono">{t("pdp.backDetail")}</figcaption>
         </figure>
       </section>
 
 
       <section className={`${styles.related} wrap`} aria-labelledby="related-title">
         <h2 id="related-title" className="display">
-          The <em className="serif">other</em> side
+          <Rich text={t("pdp.related")} />
         </h2>
         <div className={styles.relatedGrid}>
           {related.map((p, i) => (

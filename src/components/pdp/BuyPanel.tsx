@@ -5,7 +5,8 @@ import { gsap } from "@/lib/gsap";
 import { useCart, useUI } from "@/lib/store";
 import { flyToCart } from "@/lib/fly";
 import { formatPrice } from "@/config/brand";
-import { useCatalog } from "@/lib/catalog";
+import { useCatalog, useText, worldLabel } from "@/lib/catalog";
+import { track } from "@/lib/pixel";
 import { WORLDS, type Product, type Size } from "@/data/products";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import Image from "next/image";
@@ -33,6 +34,7 @@ export function BuyPanel({ product, variant, onVariant, color, onColor }: Props)
   const [barVisible, setBarVisible] = useState(false);
   const add = useCart((s) => s.add);
   const { settings, categories } = useCatalog();
+  const t = useText();
   const { freeShippingThreshold: freeOver, shippingFee, brand } = settings;
   const sizeChart = categories.find((c) => c.id === product.categoryId)?.sizeChart;
   const setCartOpen = useUI((s) => s.setCartOpen);
@@ -41,7 +43,7 @@ export function BuyPanel({ product, variant, onVariant, color, onColor }: Props)
   const btnRef = useRef<HTMLButtonElement>(null);
   const confirmRef = useRef<HTMLDivElement>(null);
   const timer = useRef<number | null>(null);
-  const world = WORLDS[product.world];
+  const world = { ...WORLDS[product.world], label: worldLabel(t, product.world) };
   const variantObj = product.printVariants?.find((v) => v.id === variant);
   const colors = productColors(product);
   const colorObj = getColor(product, color);
@@ -106,20 +108,21 @@ export function BuyPanel({ product, variant, onVariant, color, onColor }: Props)
     timer.current = window.setTimeout(() => {
       add({ slug: product.slug, size, variant, color: product.colors?.length ? colorObj.id : undefined }, qty);
       flyToCart(origin ?? btnRef.current, product.world === "daydream" ? "#ff5b1f" : "#2d6bff");
+      track("AddToCart", { content_ids: [product.slug], content_name: product.name, content_type: "product", value: product.price * qty, currency: brand.currency });
       setStatus("added");
       timer.current = window.setTimeout(() => setStatus("idle"), 4200);
     }, 420);
   };
 
   const label =
-    status === "adding" ? "Adding…" : status === "added" ? "Added to bag ✓" : size ? `Add to bag — ${formatPrice(product.price * qty)}` : "Select a size";
+    status === "adding" ? t("pdp.adding") : status === "added" ? t("pdp.added") : size ? t("pdp.add", { price: formatPrice(product.price * qty) }) : t("pdp.select");
 
   return (
     <aside className={styles.buy} aria-label="Purchase options">
       <div className={styles.buyInner}>
         <nav className={`${styles.crumbs} mono`} aria-label="Breadcrumb" data-buy>
           <TransitionLink href="/shop" className="link-u">
-            Shop
+            {t("pdp.shop")}
           </TransitionLink>
           <span aria-hidden="true">/</span>
           <TransitionLink href={`/shop?world=${product.world}`} className="link-u">
@@ -139,7 +142,7 @@ export function BuyPanel({ product, variant, onVariant, color, onColor }: Props)
         </h1>
         <div className={styles.priceRow} data-buy>
           <p className={`${styles.price} display`}>{formatPrice(product.price)}</p>
-          <p className={`${styles.priceNote} mono`}>Shipping at checkout · cash on delivery</p>
+          <p className={`${styles.priceNote} mono`}>{t("pdp.priceNote")}</p>
         </div>
         <p className={styles.tagline} data-buy>
           {product.tagline}
@@ -148,7 +151,7 @@ export function BuyPanel({ product, variant, onVariant, color, onColor }: Props)
         {colors.length > 1 ? (
           <fieldset className={styles.option} data-buy>
             <legend className={`${styles.optLabel} mono`}>
-              Colour <span>{colorObj.name}</span>
+              {t("pdp.colour")} <span>{colorObj.name}</span>
             </legend>
             <div className={styles.swatches}>
               {colors.map((c) => (
@@ -163,7 +166,7 @@ export function BuyPanel({ product, variant, onVariant, color, onColor }: Props)
         ) : (
           <div className={styles.option} data-buy>
             <p className={`${styles.optLabel} mono`}>
-              Colour <span>{colorObj.name}</span>
+              {t("pdp.colour")} <span>{colorObj.name}</span>
             </p>
             <span className={styles.swatch} style={{ background: colorObj.hex }} aria-label={`${colorObj.name} (only colour)`} role="img" />
           </div>
@@ -172,7 +175,7 @@ export function BuyPanel({ product, variant, onVariant, color, onColor }: Props)
         {product.printVariants && (
           <fieldset className={styles.option} data-buy>
             <legend className={`${styles.optLabel} mono`}>
-              Back print <span>{variantObj?.label}</span>
+              {t("pdp.print")} <span>{variantObj?.label}</span>
             </legend>
             <div className={styles.variants}>
               {product.printVariants.map((v) => (
@@ -199,11 +202,11 @@ export function BuyPanel({ product, variant, onVariant, color, onColor }: Props)
         <fieldset className={styles.option} data-buy>
           <div className={styles.optHead}>
             <legend className={`${styles.optLabel} mono`}>
-              Size <span>{size ?? "—"}</span>
+              {t("pdp.size")} <span>{size ?? "—"}</span>
             </legend>
             {sizeChart && (
               <button type="button" className="mono link-u" onClick={() => setGuide(true)}>
-                Size guide
+                {t("pdp.sizeGuide")}
               </button>
             )}
           </div>
@@ -232,7 +235,7 @@ export function BuyPanel({ product, variant, onVariant, color, onColor }: Props)
             })}
           </div>
           <p className={`${styles.sizeMsg} mono`} role="status" aria-live="polite">
-            {status === "error" ? "↑ Pick a size first" : soldOut.length ? `${soldOut.join(", ")} sold out` : " "}
+            {status === "error" ? t("pdp.pickFirst") : soldOut.length ? t("pdp.soldOut", { sizes: soldOut.join(", ") }) : " "}
           </p>
         </fieldset>
 
@@ -255,30 +258,30 @@ export function BuyPanel({ product, variant, onVariant, color, onColor }: Props)
         {status === "added" && (
           <div ref={confirmRef} className={styles.confirm} role="status">
             <p className="mono">
-              {product.shortName} · {colors.length > 1 ? `${colorObj.name} · ` : ""}{size} {variantObj ? `· ${variantObj.label} ` : ""}× {qty} is in your bag.
+              {t("pdp.inBag", { item: `${product.shortName} · ${colors.length > 1 ? `${colorObj.name} · ` : ""}${size} ${variantObj ? `· ${variantObj.label} ` : ""}× ${qty}` })}
             </p>
             <div className={styles.confirmLinks}>
               <button type="button" className="mono link-u" onClick={() => setCartOpen(true)}>
-                View bag
+                {t("pdp.viewBag")}
               </button>
               <TransitionLink href="/checkout" className="mono link-u">
-                Checkout →
+                {t("pdp.checkout")}
               </TransitionLink>
             </div>
           </div>
         )}
 
         <p className={`${styles.perk} mono`} data-buy>
-          ✳ Free shipping over {formatPrice(freeOver)}
+          {t("pdp.freeOver", { price: formatPrice(freeOver) })}
         </p>
 
         <div data-buy>
           <Accordion
             items={[
-              { id: "desc", title: "Description", content: <p>{product.description}</p>, open: true },
+              { id: "desc", title: t("pdp.desc"), content: <p>{product.description}</p>, open: true },
               {
                 id: "details",
-                title: "Details",
+                title: t("pdp.details"),
                 content: (
                   <ul className={styles.detailList}>
                     {product.details.map((d) => (
@@ -287,17 +290,17 @@ export function BuyPanel({ product, variant, onVariant, color, onColor }: Props)
                   </ul>
                 ),
               },
-              { id: "fit", title: "Fit", content: <p>{product.fit}</p> },
+              { id: "fit", title: t("pdp.fit"), content: <p>{product.fit}</p> },
               ...(brand.shippingInfo || brand.returnsInfo || shippingFee
                 ? [
                     {
                       id: "ship",
-                      title: brand.returnsInfo ? "Shipping & returns" : "Shipping",
+                      title: brand.returnsInfo ? t("pdp.shipReturns") : t("pdp.shipping"),
                       content: (
                         <div className={styles.policy}>
                           <p>
-                            {shippingFee ? `Shipping ${formatPrice(shippingFee)}` : "Free shipping"}
-                            {shippingFee && freeOver ? `, free over ${formatPrice(freeOver)}` : ""}. Cash on delivery.
+                            {shippingFee ? t("pdp.shipFee", { fee: formatPrice(shippingFee) }) : t("pdp.shipFree")}
+                            {shippingFee && freeOver ? t("pdp.shipFreeOver", { price: formatPrice(freeOver) }) : ""}. {t("pdp.cod")}
                           </p>
                           {brand.shippingInfo && <p>{brand.shippingInfo}</p>}
                           {brand.returnsInfo && <p>{brand.returnsInfo}</p>}
@@ -320,7 +323,7 @@ export function BuyPanel({ product, variant, onVariant, color, onColor }: Props)
           </p>
         </div>
         <button type="button" className="btn" onClick={(e) => submit(e.currentTarget)}>
-          {status === "added" ? "Added ✓" : size ? "Add to bag" : "Pick size"}
+          {status === "added" ? t("pdp.barAdded") : size ? t("pdp.barAdd") : t("pdp.barPick")}
         </button>
       </div>
 

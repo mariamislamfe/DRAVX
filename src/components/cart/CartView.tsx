@@ -6,7 +6,8 @@ import { useOnReady } from "@/lib/useReady";
 import { useCart, useHydrated } from "@/lib/store";
 import { cartTotals } from "@/lib/cart";
 import { formatPrice } from "@/config/brand";
-import { useCatalog } from "@/lib/catalog";
+import { useCatalog, useText, worldLabel } from "@/lib/catalog";
+import { Rich } from "@/components/brand/Rich";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import { ProductCard } from "@/components/product/ProductCard";
 import { CartLineItem } from "./CartLineItem";
@@ -17,6 +18,7 @@ export function CartView() {
   const hydrated = useHydrated();
   const lines = useCart((s) => s.lines);
   const catalog = useCatalog();
+  const t = useText();
   const { resolved, subtotal, count, shipping, total } = cartTotals(hydrated ? lines : [], catalog);
   const root = useRef<HTMLDivElement>(null);
   const intro = useRef<gsap.core.Timeline | null>(null);
@@ -40,7 +42,7 @@ export function CartView() {
       <div className="wrap">
         <header className={styles.head}>
           <h1 className={`${styles.title} display`} data-title>
-            Your bag
+            {t("cart.title")}
           </h1>
           <span className={`${styles.count} display`} data-intro>
             ({String(count).padStart(2, "0")})
@@ -55,16 +57,15 @@ export function CartView() {
         ) : resolved.length === 0 ? (
           <div className={styles.empty} data-intro>
             <p className={`${styles.emptyTitle} display`}>
-              Nothing on <br />
-              your back <em className="serif">yet.</em>
+              <Rich text={t("cart.emptyTitle")} />
             </p>
-            <p>Pick a side. Both of them are loud.</p>
+            <p>{t("bag.emptyText")}</p>
             <div className={styles.emptyCtas}>
               <TransitionLink href="/shop?world=daydream" className="btn btn--ink">
-                Shop Daydream
+                {t("cart.shopWorld", { world: worldLabel(t, "daydream") })}
               </TransitionLink>
               <TransitionLink href="/shop?world=nightshift" className="btn btn--ghost">
-                Shop Nightshift
+                {t("cart.shopWorld", { world: worldLabel(t, "nightshift") })}
               </TransitionLink>
             </div>
           </div>
@@ -77,31 +78,31 @@ export function CartView() {
             </ul>
 
             <aside className={styles.summary} data-intro aria-label="Order summary">
-              <h2 className="mono">Summary</h2>
+              <h2 className="mono">{t("cart.summary")}</h2>
               <ShippingMeter subtotal={subtotal} />
               <dl className={styles.rows}>
                 <div>
-                  <dt>Subtotal</dt>
+                  <dt>{t("bag.subtotal")}</dt>
                   <dd>{formatPrice(subtotal)}</dd>
                 </div>
                 <div>
-                  <dt>Shipping</dt>
-                  <dd>{shipping === 0 ? "Free" : formatPrice(shipping)}</dd>
+                  <dt>{t("cart.shipping")}</dt>
+                  <dd>{shipping === 0 ? t("cart.free") : formatPrice(shipping)}</dd>
                 </div>
                 <div>
-                  <dt>Payment</dt>
-                  <dd>Cash on delivery</dd>
+                  <dt>{t("cart.payment")}</dt>
+                  <dd>{t("cart.cod")}</dd>
                 </div>
               </dl>
               <div className={styles.total}>
-                <span className="mono">Estimated total</span>
+                <span className="mono">{t("cart.total")}</span>
                 <span className="display">{formatPrice(total)}</span>
               </div>
               <TransitionLink href="/checkout" className="btn btn--ink btn--block">
-                Checkout <span className="arrow">→</span>
+                {t("bag.checkout")} <span className="arrow">→</span>
               </TransitionLink>
               <TransitionLink href="/shop" className={`${styles.keep} mono link-u`}>
-                Keep shopping
+                {t("cart.keep")}
               </TransitionLink>
             </aside>
           </div>
@@ -110,7 +111,7 @@ export function CartView() {
         {hydrated && suggestions.length > 0 && resolved.length > 0 && (
           <section className={styles.suggest} aria-labelledby="suggest-title">
             <h2 id="suggest-title" className="display">
-              Complete the <em className="serif">other</em> side
+              <Rich text={t("cart.suggest")} />
             </h2>
             <div className={styles.suggestGrid}>
               {suggestions.map((p, i) => (

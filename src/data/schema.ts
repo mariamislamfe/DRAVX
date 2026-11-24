@@ -242,6 +242,102 @@ export const DEFAULT_PAYMENTS: PaymentSettings = {
   wallet: { enabled: false, details: "" },
 };
 
+/* ------------------------------------------------------------------ */
+/* Homepage                                                            */
+/* ------------------------------------------------------------------ */
+
+/** Full-width video band: brand film with the logo, a message and products on top. */
+export type HomeVideo = {
+  /** Uploaded (/uploads/…) or a direct https link to an .mp4/.webm file. */
+  src: string;
+  /** Optional lighter file for phones. */
+  mobileSrc?: string;
+  /** Still image shown while the video loads (and instead of it with reduced motion). */
+  poster?: string;
+  showLogo: boolean;
+  /** Uploaded logo image; empty = the brand logo. */
+  logo?: string;
+  eyebrow: string;
+  title: string;
+  text: string;
+  ctaLabel: string;
+  ctaHref: string;
+  /** Product slugs shown along the bottom. */
+  products: string[];
+  /** Darkening over the video, 0–80 (%). */
+  overlay: number;
+  align: "center" | "left";
+  height: "full" | "tall";
+};
+
+export type HomeSectionType = "hero" | "drop" | "prints" | "customize" | "turn" | "video";
+export type HomeSection = { id: string; type: HomeSectionType; enabled: boolean; video?: HomeVideo };
+
+/** One of the two hoodies in the "turn" section, with its call-outs. */
+export type TurnSlot = { slug: string; front: string[]; back: string[] };
+
+export type HomeSettings = {
+  /** Hero: the two products sharing the split screen (left, right). */
+  heroLeft: string;
+  heroRight: string;
+  turn: TurnSlot[];
+  /** Order and visibility of the homepage sections. */
+  sections: HomeSection[];
+};
+
+export const SECTION_LABEL: Record<HomeSectionType, string> = {
+  hero: "Hero (split screen)",
+  drop: "Product grid",
+  prints: "Back prints row",
+  customize: "Customizer teaser",
+  turn: "Turning hoodies",
+  video: "Video section",
+};
+
+export function newVideo(): HomeVideo {
+  return {
+    src: "",
+    showLogo: true,
+    eyebrow: "Drop 01 — in motion",
+    title: "Seen *leaving.*",
+    text: "Quiet on the front. Loud on the back.",
+    ctaLabel: "Shop the drop",
+    ctaHref: "/shop",
+    products: [],
+    overlay: 35,
+    align: "center",
+    height: "full",
+  };
+}
+
+export const DEFAULT_HOME: HomeSettings = {
+  heroLeft: "rex-doodle-hoodie",
+  heroRight: "third-eye-hoodie",
+  turn: [
+    {
+      slug: "rex-doodle-hoodie",
+      front: ["Small ROARR chest graphic", "Kangaroo pocket", "Dropped shoulders"],
+      back: ["Full-back T-rex on a skateboard", "Hand-written notes: “Wild one”, “Super cool”"],
+    },
+    {
+      slug: "third-eye-hoodie",
+      front: ["Eye sigil chest logo, ~6 cm", "Black, oversized drape", "Metal-tipped drawcords"],
+      back: ["40 × 40 cm back print", "4 back designs to choose from"],
+    },
+  ],
+  sections: [
+    { id: "hero", type: "hero", enabled: true },
+    { id: "drop", type: "drop", enabled: true },
+    { id: "video-1", type: "video", enabled: false, video: newVideo() },
+    { id: "prints", type: "prints", enabled: true },
+    { id: "customize", type: "customize", enabled: true },
+    { id: "turn", type: "turn", enabled: true },
+  ],
+};
+
+/** Up to this many Meta Pixel IDs. */
+export const MAX_PIXELS = 5;
+
 export type Settings = {
   /** Fee when no zones are set, or for zones without their own fee. */
   shippingFee: number;
@@ -251,6 +347,11 @@ export type Settings = {
   payments: PaymentSettings;
   customizerEnabled: boolean;
   brand: BrandInfo;
+  home: HomeSettings;
+  /** Storefront texts changed from Dashboard → Site text (key → text). See data/content.ts. */
+  text: Record<string, string>;
+  /** Meta Pixel IDs. Empty = no tracking. */
+  metaPixels: string[];
 };
 
 export function shippingFor(s: Pick<Settings, "shippingFee" | "freeShippingThreshold" | "shippingZones">, subtotal: number, zoneId?: string) {

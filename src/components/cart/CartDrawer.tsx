@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { gsap } from "@/lib/gsap";
 import { useCart, useHydrated, useUI } from "@/lib/store";
 import { cartTotals } from "@/lib/cart";
-import { useCatalog } from "@/lib/catalog";
+import { useCatalog, useText, worldLabel } from "@/lib/catalog";
 import { formatPrice } from "@/config/brand";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import { CartLineItem } from "./CartLineItem";
@@ -17,6 +17,7 @@ export function CartDrawer() {
   const lines = useCart((s) => s.lines);
   const hydrated = useHydrated();
   const { resolved, subtotal, count } = cartTotals(hydrated ? lines : [], useCatalog());
+  const t = useText();
   const root = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLElement>(null);
   const lastFocus = useRef<HTMLElement | null>(null);
@@ -73,25 +74,25 @@ export function CartDrawer() {
       <aside ref={panel} className={`${styles.drawer} on-paper`} role="dialog" aria-modal="true" aria-label="Shopping bag" data-lenis-prevent>
         <div className={styles.drawerHead}>
           <h2 className="display">
-            Bag <sup className="mono">({count})</sup>
+            {t("bag.title")} <sup className="mono">({count})</sup>
           </h2>
           <button type="button" className="mono link-u" onClick={() => setOpen(false)}>
-            Close
+            {t("bag.close")}
           </button>
         </div>
 
         {resolved.length === 0 ? (
           <div className={styles.empty}>
             <p className={`${styles.emptyTitle} display`} data-stagger>
-              Nothing on your back yet.
+              {t("bag.emptyTitle")}
             </p>
-            <p data-stagger>Pick a side. Both of them are loud.</p>
+            <p data-stagger>{t("bag.emptyText")}</p>
             <div className={styles.emptyLinks} data-stagger>
               <TransitionLink href="/shop?world=daydream" className="btn btn--ink">
-                Daydream
+                {worldLabel(t, "daydream")}
               </TransitionLink>
               <TransitionLink href="/shop?world=nightshift" className="btn btn--ghost">
-                Nightshift
+                {worldLabel(t, "nightshift")}
               </TransitionLink>
             </div>
           </div>
@@ -107,15 +108,15 @@ export function CartDrawer() {
             </ul>
             <div className={styles.drawerFoot} data-stagger>
               <div className={styles.subtotal}>
-                <span className="mono">Subtotal</span>
+                <span className="mono">{t("bag.subtotal")}</span>
                 <span className="display">{formatPrice(subtotal)}</span>
               </div>
-              <p className={`${styles.note} mono`}>Shipping calculated at checkout · cash on delivery.</p>
+              <p className={`${styles.note} mono`}>{t("bag.note")}</p>
               <TransitionLink href="/checkout" className="btn btn--ink btn--block">
-                Checkout <span className="arrow">→</span>
+                {t("bag.checkout")} <span className="arrow">→</span>
               </TransitionLink>
               <TransitionLink href="/cart" className={`${styles.viewBag} mono link-u`}>
-                View full bag
+                {t("bag.viewFull")}
               </TransitionLink>
             </div>
           </>

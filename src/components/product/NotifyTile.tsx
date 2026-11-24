@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useText } from "@/lib/catalog";
+import { Rich } from "@/components/brand/Rich";
 import styles from "./NotifyTile.module.css";
 
 /** "Next drop" teaser. NOTE: not connected to an email provider yet. */
 export function NotifyTile() {
   const [done, setDone] = useState(false);
+  const t = useText();
   const submit = (e: FormEvent) => {
     e.preventDefault();
     setDone(true);
@@ -15,22 +18,22 @@ export function NotifyTile() {
       <div className={styles.lock} aria-hidden="true">
         <span className="display">02</span>
       </div>
-      <p className="mono">Drop 02 — locked</p>
+      <p className="mono">{t("notify.kicker")}</p>
       <h3 id="notify-title" className="display">
-        Something else is <em className="serif">turning</em> around.
+        <Rich text={t("notify.title")} />
       </h3>
       {done ? (
         <p className="mono" role="status" style={{ color: "var(--blue-hi)" }}>
-          ✳ Noted. (Demo: no email provider connected.)
+          {t("notify.done")}
         </p>
       ) : (
         <form onSubmit={submit} className={styles.form}>
           <label htmlFor="notify-email" className="sr-only">
             Email for Drop 02
           </label>
-          <input id="notify-email" type="email" required placeholder="Email for first access" autoComplete="email" />
+          <input id="notify-email" type="email" required placeholder={t("notify.placeholder")} autoComplete="email" />
           <button type="submit" className="btn">
-            Notify me
+            {t("notify.button")}
           </button>
         </form>
       )}

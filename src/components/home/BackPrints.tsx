@@ -3,7 +3,8 @@
 import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import type { Product } from "@/data/products";
-import { useCatalog } from "@/lib/catalog";
+import { useCatalog, useText } from "@/lib/catalog";
+import { Rich } from "@/components/brand/Rich";
 import { formatPrice } from "@/config/brand";
 import { Garment } from "@/components/product/Garment";
 import { TransitionLink } from "@/components/transition/TransitionLink";
@@ -21,6 +22,7 @@ const items = (products: Product[]): Item[] => products.flatMap((p): Item[] =>
 export function BackPrints() {
   const root = useRef<HTMLElement>(null);
   const ITEMS = items(useCatalog().products);
+  const t = useText();
 
   useGSAP(
     () => {
@@ -40,9 +42,9 @@ export function BackPrints() {
     <section ref={root} className={styles.section} aria-labelledby="prints-title">
       <header className={`${styles.head} wrap`}>
         <h2 id="prints-title" className="display">
-          Pick your <em className="serif">back.</em>
+          <Rich text={t("prints.title")} />
         </h2>
-        <p className="mono">{ITEMS.length} back designs</p>
+        <p className="mono">{t("prints.count", { n: ITEMS.length })}</p>
       </header>
       <div className={styles.row}>
         {ITEMS.map((it) => (

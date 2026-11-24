@@ -7,6 +7,7 @@ import { MIN_PASSWORD, checkPassword, endSession, hashPassword, requireAdmin, st
 import { SIZES, WORLD_IDS, adjustStock, syncSoldOut, type ImageKind, type Product, type ProductColor, type Size } from "@/data/products";
 import {
   DEFAULT_BRAND,
+  MAX_PIXELS,
   ORDER_STATUSES,
   PAYMENT_METHODS,
   slugify,
@@ -15,6 +16,9 @@ import {
   type CustomTemplate,
   type DB,
   type Discount,
+  type HomeSection,
+  type HomeSettings,
+  type HomeVideo,
   type Order,
   type OrderStatus,
   type PaymentSettings,
@@ -23,6 +27,8 @@ import {
   type SizeChart,
 } from "@/data/schema";
 import { INTEGRATIONS } from "@/data/integrations";
+import { TEXT_GROUPS } from "@/data/content";
+import { isUploadUrl } from "./uploads";
 
 export type ActionResult = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -221,6 +227,8 @@ export async function saveProduct(input: Product & { originalSlug?: string }): P
       product.stock = cleanStock(input.stock, productSizes);
     }
     syncSoldOut(product);
+    // a renamed URL keeps its spots on the homepage
+    if (existing && existing.slug !== slug) renameInHome(db, existing.slug, slug);
     if (existing) Object.assign(existing, product);
     else db.products.push(product);
     return { ok: true, id: slug };
@@ -384,6 +392,9 @@ export async function saveSettings(_: unknown, form: FormData): Promise<{ saved?
   if (siteUrl && !/^https?:\/\/[^\s/]+\.[^\s]+$/i.test(siteUrl)) return { error: "Website address must start with https://" };
   const email = b("email", 120);
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "That email address doesn't look right." };
+  const pixels = [...new Set(form.getAll("metaPixel").map((v) => str(v, 30).replace(/\s/g, "")).filter(Boolean))];
+  if (pixels.some((p) => !/^\d{6,20}$/.test(p))) return { error: "A Meta Pixel ID is digits only (e.g. 123456789012345)." };
+  if (pixels.length > MAX_PIXELS) return { error: `Up to ${MAX_PIXELS} Pixel IDs.` };
 
   await mutate((db) => {
     // shipping & returns text is edited on the Shipping page
@@ -404,6 +415,7 @@ export async function saveSettings(_: unknown, form: FormData): Promise<{ saved?
       returnsInfo,
     };
     db.settings.customizerEnabled = form.get("customizerEnabled") === "on";
+    db.settings.metaPixels = pixels;
   });
   refresh();
   return { saved: true };
@@ -612,4 +624,96 @@ export async function clearNotices() {
     db.notifications = db.notifications.filter((n) => !n.read);
   });
   revalidatePath("/admin", "layout");
+}
+
+/* ------------------------------------------------------------------ */
+/* Homepage & site text                                                */
+/* ------------------------------------------------------------------ */
+
+const SECTION_TYPES = ["hero", "drop", "prints", "customize", "turn", "video"] as const;
+/** An uploaded file or a public https link. */
+const mediaUrl = (v: unknown) => {
+  const u = str(v, 1000);
+  if (!u) return "";
+  if (isUploadUrl(u) || imgUrl(u)) return u;
+  return /^https:\/\/[^\s"'<>]+$/i.test(u) ? u : "";
+};
+/** Internal path (/shop) or https link. */
+const linkUrl = (v: unknown) => {
+  const u = str(v, 500);
+  if (/^\/(?!\/)[^\s"'<>]*$/.test(u)) return u;
+  return /^https:\/\/[^\s"'<>]+$/i.test(u) ? u : "";
+};
+const lines = (v: unknown, n = 6) => (Array.isArray(v) ? v.map((x) => str(x, 160)).filter(Boolean).slice(0, n) : []);
+
+function cleanVideo(v: Partial<HomeVideo> | undefined): HomeVideo {
+  return {
+    src: mediaUrl(v?.src),
+    mobileSrc: mediaUrl(v?.mobileSrc) || undefined,
+    poster: mediaUrl(v?.poster) || undefined,
+    showLogo: v?.showLogo !== false,
+    logo: mediaUrl(v?.logo) || undefined,
+    eyebrow: str(v?.eyebrow, 120),
+    title: str(v?.title, 160),
+    text: str(v?.text, 600),
+    ctaLabel: str(v?.ctaLabel, 60),
+    ctaHref: linkUrl(v?.ctaHref),
+    products: Array.isArray(v?.products) ? [...new Set(v.products.map((x) => str(x, 80)).filter(Boolean))].slice(0, 8) : [],
+    overlay: Math.round(num(v?.overlay, 0, 80)),
+    align: v?.align === "left" ? "left" : "center",
+    height: v?.height === "tall" ? "tall" : "full",
+  };
+}
+
+function renameInHome(db: DB, from: string, to: string) {
+  const h = db.settings.home;
+  if (!h) return;
+  if (h.heroLeft === from) h.heroLeft = to;
+  if (h.heroRight === from) h.heroRight = to;
+  for (const t of h.turn ?? []) if (t.slug === from) t.slug = to;
+  for (const s of h.sections ?? []) if (s.video) s.video.products = s.video.products.map((x) => (x === from ? to : x));
+}
+
+export async function saveHome(input: HomeSettings): Promise<ActionResult> {
+  await requireAdmin();
+  const seen = new Set<string>();
+  const sections: HomeSection[] = [];
+  for (const raw of Array.isArray(input?.sections) ? input.sections.slice(0, 30) : []) {
+    const type = SECTION_TYPES.find((t) => t === raw?.type);
+    if (!type) continue;
+    const id = type === "video" ? str(raw.id, 40).replace(/[^\w-]/g, "") || `video-${Date.now().toString(36)}` : type;
+    if (seen.has(id)) continue; // each built-in section once; video ids unique
+    seen.add(id);
+    sections.push({ id, type, enabled: !!raw.enabled, ...(type === "video" ? { video: cleanVideo(raw.video) } : {}) });
+  }
+  // built-in sections that went missing come back (hidden), so they can be switched on again
+  for (const type of SECTION_TYPES) if (type !== "video" && !seen.has(type)) sections.push({ id: type, type, enabled: false });
+
+  const turn = [0, 1].map((i) => {
+    const t = input?.turn?.[i];
+    return { slug: str(t?.slug, 80), front: lines(t?.front), back: lines(t?.back) };
+  });
+
+  await mutate((db) => {
+    db.settings.home = { heroLeft: str(input?.heroLeft, 80), heroRight: str(input?.heroRight, 80), turn, sections };
+  });
+  refresh();
+  return { ok: true };
+}
+
+export async function saveText(_: unknown, form: FormData): Promise<{ saved?: boolean; error?: string }> {
+  await requireAdmin();
+  const text: Record<string, string> = {};
+  for (const g of TEXT_GROUPS) {
+    for (const f of g.fields) {
+      const v = str(form.get(`t.${f.key}`), 800);
+      // only changes are kept, so defaults improved later still reach the site
+      if (v && v !== f.def) text[f.key] = v;
+    }
+  }
+  await mutate((db) => {
+    db.settings.text = text;
+  });
+  refresh();
+  return { saved: true };
 }

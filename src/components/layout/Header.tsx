@@ -6,15 +6,17 @@ import { gsap, ScrollTrigger } from "@/lib/gsap";
 import { useCart, useHydrated, useUI } from "@/lib/store";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import { BRAND } from "@/config/brand";
+import { useText, worldLabel } from "@/lib/catalog";
+import type { T } from "@/data/content";
 import { Logo } from "@/components/brand/Logo";
 import styles from "./Header.module.css";
 
-export const NAV = [
-  { href: "/shop", label: "Shop all" },
-  { href: "/shop?world=daydream", label: "Daydream" },
-  { href: "/shop?world=nightshift", label: "Nightshift" },
-  { href: "/customize", label: "Customize" },
-  { href: "/about", label: "Manifesto" },
+export const nav = (t: T) => [
+  { href: "/shop", label: t("nav.shop") },
+  { href: "/shop?world=daydream", label: worldLabel(t, "daydream") },
+  { href: "/shop?world=nightshift", label: worldLabel(t, "nightshift") },
+  { href: "/customize", label: t("nav.customize") },
+  { href: "/about", label: t("nav.about") },
 ];
 
 export function Header() {
@@ -24,6 +26,8 @@ export function Header() {
   const hydrated = useHydrated();
   const count = useCart((s) => s.lines.reduce((n, l) => n + l.qty, 0));
   const { setCartOpen, menuOpen, setMenuOpen, bump } = useUI();
+  const t = useText();
+  const NAV = nav(t);
 
   // hide on scroll down, reveal on scroll up
   useEffect(() => {
@@ -66,7 +70,7 @@ export function Header() {
 
       <div className={styles.actions}>
         <button type="button" className={`${styles.bag} mono`} onClick={() => setCartOpen(true)} aria-label={`Open bag, ${hydrated ? count : 0} items`} data-cart-target>
-          Bag
+          {t("nav.bag")}
           <span ref={countRef} className={styles.count}>
             {hydrated ? count : 0}
           </span>
@@ -78,7 +82,7 @@ export function Header() {
           aria-controls="mobile-menu"
           onClick={() => setMenuOpen(!menuOpen)}
         >
-          <span className={styles.menuLabel}>{menuOpen ? "Close" : "Menu"}</span>
+          <span className={styles.menuLabel}>{menuOpen ? t("nav.close") : t("nav.menu")}</span>
           <span className={styles.burger} aria-hidden="true">
             <i />
             <i />

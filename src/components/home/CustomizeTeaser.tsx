@@ -2,22 +2,20 @@
 
 import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
-import { useCatalog } from "@/lib/catalog";
+import { useCatalog, useText } from "@/lib/catalog";
+import { Rich } from "@/components/brand/Rich";
 import { formatPrice } from "@/config/brand";
 import { mockupFor, type TemplateView } from "@/data/schema";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import styles from "./CustomizeTeaser.module.css";
 
-const STEPS = [
-  ["Upload or type", "Drop in your artwork (PNG, JPG, WebP) or set some text."],
-  ["Place it", "Drag, resize and rotate it on the front, the back or both."],
-  ["See it, then order", "Preview it on the real garment. Happy? Add it to your bag."],
-] as const;
 
 /** Home-page entry to the customizer, built from the first customizer base. */
 export function CustomizeTeaser() {
   const root = useRef<HTMLElement>(null);
   const t = useCatalog().templates[0];
+  const tx = useText();
+  const STEPS = [1, 2, 3].map((n) => [tx(`ct.s${n}t`), tx(`ct.s${n}b`)] as const);
 
   useGSAP(
     () => {
@@ -43,16 +41,16 @@ export function CustomizeTeaser() {
     <section ref={root} className={`${styles.section} on-paper`} aria-labelledby="customize-title">
       <div className={`${styles.inner} wrap`}>
         <div className={styles.copy}>
-          <p className="mono">Custom studio</p>
+          <p className="mono">{tx("ct.kicker")}</p>
           <h2 id="customize-title" className="display">
-            Your art. <em className="serif">Our blank.</em>
+            <Rich text={tx("ct.title")} />
           </h2>
           <p className={styles.lead}>
-            Put your own design on the {t.name.toLowerCase().replace(/^custom\s+/, "")}. Printed to order, from {formatPrice(cheapest)}.
+            {tx("ct.lead", { garment: t.name.toLowerCase().replace(/^custom\s+/, ""), price: formatPrice(cheapest) })}
           </p>
           <ol className={styles.steps}>
             {STEPS.map(([title, body], i) => (
-              <li key={title}>
+              <li key={i}>
                 <span className="mono">0{i + 1}</span>
                 <strong>{title}</strong>
                 <span>{body}</span>
@@ -60,7 +58,7 @@ export function CustomizeTeaser() {
             ))}
           </ol>
           <TransitionLink href="/customize" className="btn btn--ink">
-            Start designing <span className="arrow">→</span>
+            {tx("ct.cta")} <span className="arrow">→</span>
           </TransitionLink>
         </div>
 
@@ -77,7 +75,7 @@ export function CustomizeTeaser() {
                     style={{ left: `${view.area.x * 100}%`, top: `${view.area.y * 100}%`, width: `${view.area.w * 100}%`, height: `${view.area.h * 100}%` }}
                     data-dark={luminance(c.hex) < 0.45 || undefined}
                   >
-                    <span className="hand">your art here</span>
+                    <span className="hand">{tx("ct.area")}</span>
                   </span>
                 )}
               </div>

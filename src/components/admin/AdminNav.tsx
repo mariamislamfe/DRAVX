@@ -42,6 +42,8 @@ const GROUPS: Group[] = [
   {
     title: "Store",
     links: [
+      { href: "/admin/homepage", label: "Homepage", icon: "home" },
+      { href: "/admin/content", label: "Site text", icon: "text" },
       { href: "/admin/payments", label: "Payments", icon: "payments" },
       { href: "/admin/shipping", label: "Shipping", icon: "shipping" },
       { href: "/admin/integrations", label: "Integrations", icon: "integrations" },

@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useCatalog } from "@/lib/catalog";
+import { useCatalog, useText } from "@/lib/catalog";
+import { Rich } from "@/components/brand/Rich";
+import { track } from "@/lib/pixel";
 import { useCart, useUI } from "@/lib/store";
 import { formatPrice } from "@/config/brand";
 import { mockupFor, templatePrice, type CustomDesign, type CustomSide, type CustomTemplate, type Side } from "@/data/schema";
@@ -24,6 +26,7 @@ const SIDE_LABEL: Record<Side, string> = { front: "Front", back: "Back" };
 
 export function Customizer() {
   const { templates } = useCatalog();
+  const tx = useText();
   const [tid, setTid] = useState(templates[0]?.id);
   const t = templates.find((x) => x.id === tid) ?? templates[0];
   if (!t) {
@@ -31,9 +34,9 @@ export function Customizer() {
       <div className={`${styles.page} on-paper`}>
         <div className="wrap">
           <h1 className={`${styles.title} display`}>
-            Customize <em className="serif">soon.</em>
+            <Rich text={tx("cz.closedTitle")} />
           </h1>
-          <p>The custom studio is closed right now. Check back shortly.</p>
+          <p>{tx("cz.closedText")}</p>
         </div>
       </div>
     );
@@ -43,6 +46,8 @@ export function Customizer() {
 
 function Studio({ template: t, templates, onTemplate }: { template: CustomTemplate; templates: CustomTemplate[]; onTemplate: (id: string) => void }) {
   const views = t.views.filter((v) => v.enabled);
+  const tx = useText();
+  const currency = useCatalog().settings.brand.currency;
   const [side, setSide] = useState<Side>(views.find((v) => v.side === "back")?.side ?? views[0].side);
   const view = views.find((v) => v.side === side) ?? views[0];
   const [layers, setLayers] = useState<Layers>({ front: [], back: [] });
@@ -292,6 +297,7 @@ function Studio({ template: t, templates, onTemplate }: { template: CustomTempla
         note: note.trim() || undefined,
       };
       add({ slug: t.id, size, custom }, qty);
+      track("AddToCart", { content_ids: [t.id], content_name: t.name, content_type: "product", value: price * qty, currency });
       closeReview();
       setAdded(true);
       setCartOpen(true);
@@ -383,14 +389,14 @@ function Studio({ template: t, templates, onTemplate }: { template: CustomTempla
               )}
             </div>
           </div>
-          <p className={`${styles.hint} mono`}>Drag to move · corner to resize · top dot to rotate · arrows nudge</p>
+          <p className={`${styles.hint} mono`}>{tx("cz.hint")}</p>
         </section>
 
         {/* ---------------- panel ---------------- */}
         <aside className={styles.panel} aria-label="Customize options">
-          <p className="mono">Custom studio</p>
+          <p className="mono">{tx("cz.kicker")}</p>
           <h1 className={`${styles.title} display`}>
-            Make it <em className="serif">yours.</em>
+            <Rich text={tx("cz.title")} />
           </h1>
 
           {templates.length > 1 && (
@@ -409,10 +415,10 @@ function Studio({ template: t, templates, onTemplate }: { template: CustomTempla
 
           <div className={styles.tools}>
             <button type="button" className="btn btn--ink" onClick={() => fileRef.current?.click()}>
-              Upload image
+              {tx("cz.upload")}
             </button>
             <button type="button" className="btn btn--ghost" onClick={addText}>
-              Add text
+              {tx("cz.addText")}
             </button>
             <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden onChange={(e) => onFiles(e.target.files)} />
           </div>
@@ -521,7 +527,7 @@ function Studio({ template: t, templates, onTemplate }: { template: CustomTempla
           </fieldset>
 
           <label className={styles.field}>
-            <span className="mono">Note for the print shop (optional)</span>
+            <span className="mono">{tx("cz.note")}</span>
             <textarea rows={2} maxLength={400} value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. keep the colours exactly as the file" />
           </label>
 
@@ -544,19 +550,19 @@ function Studio({ template: t, templates, onTemplate }: { template: CustomTempla
 
           {added ? (
             <div className={styles.added} role="status">
-              <p className="mono">Your design is in the bag ✓</p>
+              <p className="mono">{tx("cz.added")}</p>
               <div className={styles.tools}>
                 <TransitionLink href="/checkout" className="btn btn--ink">
-                  Checkout →
+                  {tx("pdp.checkout")}
                 </TransitionLink>
                 <button type="button" className="btn btn--ghost" onClick={startOver}>
-                  Design another
+                  {tx("cz.another")}
                 </button>
               </div>
             </div>
           ) : (
             <button type="button" className="btn btn--ink btn--block" onClick={startReview} disabled={busy !== null}>
-              {busy === "preview" ? "Rendering…" : "Preview on garment →"}
+              {busy === "preview" ? tx("cz.rendering") : tx("cz.preview")}
             </button>
           )}
           <p className={`${styles.fine} mono`}>Printed at {PRINT_DPI} dpi. You confirm the preview before anything is added.</p>
@@ -566,8 +572,8 @@ function Studio({ template: t, templates, onTemplate }: { template: CustomTempla
       {review && (
         <div className={styles.modal} role="dialog" aria-modal="true" aria-label="Confirm your design" data-lenis-prevent>
           <div className={styles.modalCard}>
-            <p className="mono">Step 2 · Check it</p>
-            <h2 className="display">This is what we print.</h2>
+            <p className="mono">{tx("cz.step2")}</p>
+            <h2 className="display">{tx("cz.check")}</h2>
             <div className={styles.reviewGrid}>
               {review.map((r) => (
                 <figure key={r.side}>
@@ -584,10 +590,10 @@ function Studio({ template: t, templates, onTemplate }: { template: CustomTempla
             </p>
             <div className={styles.tools}>
               <button type="button" className="btn btn--ink" onClick={confirm} disabled={busy === "adding"}>
-                {busy === "adding" ? "Uploading…" : "Looks good, add to bag"}
+                {busy === "adding" ? tx("cz.uploading") : tx("cz.confirm")}
               </button>
               <button type="button" className="btn btn--ghost" onClick={closeReview} disabled={busy === "adding"}>
-                Keep editing
+                {tx("cz.keepEditing")}
               </button>
             </div>
             {msg && (

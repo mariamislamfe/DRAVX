@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { gsap, useGSAP, prefersReducedMotion } from "@/lib/gsap";
 import { useOnReady } from "@/lib/useReady";
-import { byWorld, useCatalog } from "@/lib/catalog";
+import { pickProduct, useCatalog, useText } from "@/lib/catalog";
 import { formatPrice } from "@/config/brand";
 import { Garment } from "@/components/product/Garment";
 import { TransitionLink } from "@/components/transition/TransitionLink";
@@ -39,9 +39,11 @@ export function Hero() {
   const splitVal = useRef(50);
   const ready = useRef(false);
   const { navigate } = useTransitionNav();
-  const { products } = useCatalog();
-  const day = byWorld(products, "daydream")!;
-  const night = byWorld(products, "nightshift")!;
+  const { products, settings } = useCatalog();
+  const t = useText();
+  // chosen in Dashboard → Homepage; falls back if a pick was deleted or hidden
+  const day = pickProduct(products, settings.home?.heroLeft, 0)!;
+  const night = pickProduct(products, settings.home?.heroRight, 1)!;
 
   useGSAP(
     () => {
@@ -130,25 +132,25 @@ export function Hero() {
 
       <h1 id="hero-title" className={`${styles.title} display`}>
         <span className="mask">
-          <span>Turn your back</span>
+          <span>{t("hero.line1")}</span>
         </span>
         <span className="mask">
-          <span>on them.</span>
+          <span>{t("hero.line2")}</span>
         </span>
       </h1>
 
       <div className={styles.tags}>
-        {[day, night].map((p) => (
+        {[day, night].map((p, i) => (
           <TransitionLink
-            key={p.slug}
+            key={`${p.slug}-${i}`}
             href={`/product/${p.slug}`}
             transition={productTransition(p)}
             className={styles.tag}
-            data-world={p.world}
+            data-world={i === 0 ? "daydream" : "nightshift"} /* tag colours follow the half, not the product */
             data-hero-tag
-            onPointerEnter={() => lean(p.world === "daydream" ? 78 : 22)}
+            onPointerEnter={() => lean(i === 0 ? 78 : 22)}
             onPointerLeave={() => lean(null)}
-            onFocus={() => lean(p.world === "daydream" ? 78 : 22)}
+            onFocus={() => lean(i === 0 ? 78 : 22)}
             onBlur={() => lean(null)}
           >
             <span className={styles.tagInfo}>
@@ -156,7 +158,7 @@ export function Hero() {
               <span className="mono">{formatPrice(p.price)}</span>
             </span>
             <span className={`${styles.tagCta} mono`}>
-              <span className={styles.ctaWord}>Shop&nbsp;</span>→
+              <span className={styles.ctaWord}>{t("hero.shop")}&nbsp;</span>→
             </span>
           </TransitionLink>
         ))}

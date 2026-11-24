@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { gsap } from "@/lib/gsap";
 import { useCart } from "@/lib/store";
 import { flyToCart } from "@/lib/fly";
-import { WORLDS, type Product, type Size, soldOutFor } from "@/data/products";
+import { track } from "@/lib/pixel";
+import { useCatalog } from "@/lib/catalog";
+import { type Product, type Size, soldOutFor } from "@/data/products";
+import { useText, worldLabel } from "@/lib/catalog";
 import { formatPrice } from "@/config/brand";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import { ProductVisual } from "./ProductVisual";
@@ -20,6 +23,8 @@ export function ProductCard({ product, index = 0, priority }: { product: Product
   const add = useCart((s) => s.add);
   const [added, setAdded] = useState<Size | null>(null);
   const [flipped, setFlipped] = useState(false);
+  const t = useText();
+  const currency = useCatalog().settings.brand.currency;
 
   // subtle 3D tilt toward the pointer
   useEffect(() => {
@@ -45,11 +50,11 @@ export function ProductCard({ product, index = 0, priority }: { product: Product
   const quickAdd = (size: Size, btn: HTMLElement) => {
     add({ slug: product.slug, size, variant: product.printVariants?.[0]?.id, color: product.colors?.[0]?.id });
     flyToCart(btn, product.world === "daydream" ? "#ff5b1f" : "#2d6bff");
+    track("AddToCart", { content_ids: [product.slug], content_name: product.name, content_type: "product", value: product.price, currency });
     setAdded(size);
     window.setTimeout(() => setAdded(null), 1600);
   };
 
-  const world = WORLDS[product.world];
 
   return (
     <article ref={ref} className={styles.card} data-world={product.world}>
@@ -70,11 +75,11 @@ export function ProductCard({ product, index = 0, priority }: { product: Product
           <ProductVisual product={product} kind="back" sizes="(max-width: 700px) 100vw, 45vw" tag={false} />
         </div>
         <span className={`${styles.index} mono`}>
-          {String(index + 1).padStart(2, "0")} / {world.label}
+          {String(index + 1).padStart(2, "0")} / {worldLabel(t, product.world)}
         </span>
         {product.badge && <span className={`${styles.badge} tag ${product.world === "nightshift" ? "tag--blue" : ""}`}>{product.badge}</span>}
         <span className={`${styles.turn} hand`} aria-hidden="true">
-          hover to turn ↻
+          {t("card.hover")}
         </span>
       </TransitionLink>
       <button
@@ -83,7 +88,7 @@ export function ProductCard({ product, index = 0, priority }: { product: Product
         aria-pressed={flipped}
         onClick={() => setFlipped((f) => !f)}
       >
-        {flipped ? "Front" : "Back"} ↻
+        {flipped ? t("card.front") : t("card.back")} ↻
       </button>
       </div>
 
@@ -95,15 +100,15 @@ export function ProductCard({ product, index = 0, priority }: { product: Product
             </TransitionLink>
           </h3>
           <p className={`${styles.meta} mono`}>
-            {product.colors && product.colors.length > 1 ? `${product.colors.length} colours` : product.colorName}
-            {product.printVariants ? ` · ${product.printVariants.length} back prints` : ""}
+            {product.colors && product.colors.length > 1 ? t("card.colours", { n: product.colors.length }) : product.colorName}
+            {product.printVariants?.length ? ` · ${t("card.prints", { n: product.printVariants.length })}` : ""}
           </p>
         </div>
         <p className={`${styles.price} display`}>{formatPrice(product.price)}</p>
       </div>
 
       <div className={styles.quick} role="group" aria-label={`Quick add ${product.name}`}>
-        <span className={`${styles.quickLabel} mono`}>{added ? `Added size ${added} ✓` : "Quick add"}</span>
+        <span className={`${styles.quickLabel} mono`}>{added ? t("card.added", { size: added }) : t("card.quick")}</span>
         <div className={styles.sizes}>
           {product.sizes.map((s) => {
             const out = soldOutFor(product, product.colors?.[0]?.id).includes(s);

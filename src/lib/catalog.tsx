@@ -1,8 +1,10 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useMemo } from "react";
 import type { Catalog } from "@/data/schema";
 import { setCurrency } from "@/config/brand";
+import { makeT, type T } from "@/data/content";
+import type { World } from "@/data/products";
 
 const Ctx = createContext<Catalog | null>(null);
 
@@ -22,4 +24,13 @@ export function findProduct(catalog: Catalog, slug: string) {
   return catalog.products.find((p) => p.slug === slug);
 }
 
-export { byWorld } from "@/data/products";
+/** Site text, as edited in Dashboard → Site text. */
+export function useText(): T {
+  const text = useCatalog().settings.text;
+  return useMemo(() => makeT(text), [text]);
+}
+
+/** A world's display name. */
+export const worldLabel = (t: T, w: World) => t(`world.${w}.label`);
+
+export { byWorld, pickProduct } from "@/data/products";

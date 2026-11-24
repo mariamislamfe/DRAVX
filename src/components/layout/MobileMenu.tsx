@@ -5,9 +5,9 @@ import { gsap } from "@/lib/gsap";
 import { useUI } from "@/lib/store";
 import { TransitionLink } from "@/components/transition/TransitionLink";
 import { Garment } from "@/components/product/Garment";
-import { useCatalog } from "@/lib/catalog";
+import { useCatalog, useText } from "@/lib/catalog";
 import { socialUrl } from "@/config/brand";
-import { NAV } from "./Header";
+import { nav } from "./Header";
 import styles from "./MobileMenu.module.css";
 
 export function MobileMenu() {
@@ -17,6 +17,8 @@ export function MobileMenu() {
   const { products: all, settings } = useCatalog();
   const products = all.slice(0, 3);
   const brand = settings.brand;
+  const t = useText();
+  const NAV = nav(t);
   const tl = useRef<gsap.core.Timeline | null>(null);
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export function MobileMenu() {
           <li className="mask">
             <TransitionLink href="/cart" data-item className={`${styles.link} display`}>
               <span className={`${styles.idx} mono`}>{String(NAV.length + 1).padStart(2, "0")}</span>
-              Bag
+              {t("nav.bag")}
             </TransitionLink>
           </li>
         </ul>
@@ -72,7 +74,7 @@ export function MobileMenu() {
           </a>
         )}
         <p className="mono" data-fade style={{ opacity: 0.6 }}>
-          {brand.tagline || "Front: quiet. Back: loud."}
+          {brand.tagline}
         </p>
       </div>
     </div>
