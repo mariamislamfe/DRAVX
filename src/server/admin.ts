@@ -635,6 +635,8 @@ const SECTION_TYPES = ["hero", "drop", "prints", "customize", "turn", "video"] a
 const mediaUrl = (v: unknown) => {
   const u = str(v, 1000);
   if (!u) return "";
+  // bundled clips in public/videos
+  if (/^\/videos\/[\w-]+\.(mp4|webm)$/.test(u)) return u;
   if (isUploadUrl(u) || imgUrl(u)) return u;
   return /^https:\/\/[^\s"'<>]+$/i.test(u) ? u : "";
 };

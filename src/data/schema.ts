@@ -310,6 +310,9 @@ export function newVideo(): HomeVideo {
   };
 }
 
+/** The brand clip bundled in public/videos, used by the first video section. */
+export const INTRO_VIDEO = "/videos/dravx-motion.mp4";
+
 export const DEFAULT_HOME: HomeSettings = {
   heroLeft: "rex-doodle-hoodie",
   heroRight: "third-eye-hoodie",
@@ -328,7 +331,7 @@ export const DEFAULT_HOME: HomeSettings = {
   sections: [
     { id: "hero", type: "hero", enabled: true },
     { id: "drop", type: "drop", enabled: true },
-    { id: "video-1", type: "video", enabled: false, video: newVideo() },
+    { id: "video-1", type: "video", enabled: true, video: { ...newVideo(), src: INTRO_VIDEO } },
     { id: "prints", type: "prints", enabled: true },
     { id: "customize", type: "customize", enabled: true },
     { id: "turn", type: "turn", enabled: true },

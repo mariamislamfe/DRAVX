@@ -15,7 +15,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { SEED_PRODUCTS } from "@/data/products";
-import { DEFAULT_BRAND, DEFAULT_HOME, DEFAULT_PAYMENTS, DEFAULT_SIZE_CHART, type Catalog, type CustomTemplate, type DB } from "@/data/schema";
+import { DEFAULT_BRAND, DEFAULT_HOME, DEFAULT_PAYMENTS, INTRO_VIDEO, DEFAULT_SIZE_CHART, type Catalog, type CustomTemplate, type DB } from "@/data/schema";
 import { setCurrency } from "@/config/brand";
 import { neonCreate, neonRead, neonWrite, neonEnabled } from "./neon";
 
@@ -159,6 +159,14 @@ function upgrade(db: DB): boolean {
     db.settings.metaPixels = [];
     changed = true;
   }
+  // the first video section shipped empty and switched off; give it the brand clip (once)
+  once("intro-video", () => {
+    const v = db.settings.home?.sections.find((x) => x.id === "video-1");
+    if (v?.video && !v.video.src) {
+      v.video.src = INTRO_VIDEO;
+      v.enabled = true;
+    }
+  });
   // the store sells in Egypt: move off the old USD default (once; Settings can change it after)
   once("currency-egp", () => {
     if (db.settings.brand && db.settings.brand.currency === "USD") db.settings.brand.currency = "EGP";
