@@ -17,7 +17,8 @@ export function productTransition(p: Product) {
   return { label: p.shortName, tone: p.world === "daydream" ? ("concrete" as const) : ("blue" as const) };
 }
 
-export function ProductCard({ product, index = 0, priority }: { product: Product; index?: number; priority?: boolean }) {
+/** `compact`: on phones the card shrinks to fit two per row (no quick-add; tap opens the product). */
+export function ProductCard({ product, index = 0, priority, compact }: { product: Product; index?: number; priority?: boolean; compact?: boolean }) {
   const ref = useRef<HTMLElement>(null);
   const media = useRef<HTMLAnchorElement>(null);
   const add = useCart((s) => s.add);
@@ -57,7 +58,7 @@ export function ProductCard({ product, index = 0, priority }: { product: Product
 
 
   return (
-    <article ref={ref} className={styles.card} data-world={product.world}>
+    <article ref={ref} className={styles.card} data-world={product.world} data-compact={compact || undefined}>
       <div className={styles.mediaWrap}>
       <TransitionLink
         ref={media}

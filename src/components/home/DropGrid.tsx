@@ -41,7 +41,7 @@ export function DropGrid() {
         <div className={styles.grid}>
           {products.map((p, i) => (
             <div key={p.slug} className={styles.cell}>
-              <ProductCard product={p} index={i} />
+              <ProductCard product={p} index={i} compact />
             </div>
           ))}
         </div>

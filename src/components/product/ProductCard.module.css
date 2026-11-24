@@ -162,3 +162,45 @@
     color: var(--paper);
   }
 }
+
+/* Two-per-row cards on phones */
+@media (max-width: 700px) {
+  .card[data-compact] {
+    gap: 10px;
+  }
+  .card[data-compact] .info {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .card[data-compact] .name {
+    font-size: 1.05rem;
+    line-height: 1.1;
+  }
+  .card[data-compact] .price {
+    font-size: 0.95rem;
+  }
+  .card[data-compact] .meta {
+    margin-top: 4px;
+    font-size: 0.6rem;
+  }
+  .card[data-compact] .quick {
+    display: none;
+  }
+  /* no room next to the badge */
+  .card[data-compact] .index {
+    display: none;
+  }
+  .card[data-compact] .badge {
+    top: 6px;
+    right: 6px;
+    transform: scale(0.85);
+    transform-origin: top right;
+  }
+  .card[data-compact] .flip {
+    right: 6px;
+    bottom: 6px;
+    min-height: 32px;
+    padding: 0 8px;
+    font-size: 0.58rem;
+  }
+}
